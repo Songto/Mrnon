@@ -8,8 +8,8 @@ const FEATURES = [
   {
     href: "/tearoom",
     emoji: "💬",
-    title: "Live chat rooms",
-    text: "Our Discord channels reborn as cozy tables — lobby, memes, fps wolf, horror & more."
+    title: "Live chat",
+    text: "Hang out in the public lobby, or open a private room with a code just for your friends."
   },
   {
     href: "/members",

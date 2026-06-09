@@ -9,7 +9,7 @@ export default function TearoomPage() {
       <SectionHeading
         emoji="🍵"
         title="The Tearoom"
-        subtitle="Pull up a chair at a table and chat live. Your seat shows up for everyone."
+        subtitle="Chat live in the public lobby, or open a private room with a code for just your friends."
       />
       <ChatRoom />
     </div>

@@ -28,12 +28,27 @@ type ChatMessage = {
   ts: number;
 };
 
-const MAX_HISTORY = 100;
+// Chats keep only the most recent messages; older history is dropped so no
+// room hoards a long backlog. Private (code) rooms also delete themselves
+// entirely once everyone has left.
+const MAX_HISTORY = 30;
+const LOBBY = "lobby";
 const roster = new Map<string, Map<string, Seat>>(); // room -> socketId -> seat
 const history = new Map<string, ChatMessage[]>(); // room -> messages
 
 function seatsOf(room: string): Seat[] {
   return Array.from(roster.get(room)?.values() ?? []);
+}
+
+// When a room empties out, tidy up. Private rooms (anything other than the
+// public lobby) vanish completely — roster AND chat history — so they truly
+// "self-destruct" with no trace once the last person leaves.
+function cleanupIfEmpty(room: string) {
+  const seats = roster.get(room);
+  if (seats && seats.size === 0) {
+    roster.delete(room);
+    if (room !== LOBBY) history.delete(room);
+  }
 }
 
 // Unique humans currently online across all rooms (by userId).
@@ -76,6 +91,7 @@ app.prepare().then(() => {
           prev?.delete(socket.id);
           socket.leave(current.room);
           io.to(current.room).emit("seats", seatsOf(current.room));
+          cleanupIfEmpty(current.room);
         }
 
         const seat: Seat = { socketId: socket.id, userId, name, avatar };
@@ -137,6 +153,7 @@ app.prepare().then(() => {
       const room = roster.get(current.room);
       room?.delete(socket.id);
       io.to(current.room).emit("seats", seatsOf(current.room));
+      cleanupIfEmpty(current.room);
       broadcastLounge();
       current = null;
     });
