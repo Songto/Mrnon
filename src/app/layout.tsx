@@ -4,6 +4,7 @@ import Providers from "@/components/Providers";
 import { Nav } from "@/components/ui/Nav";
 import { AmbiencePlayer } from "@/components/AmbiencePlayer";
 import { BadgeToaster } from "@/components/BadgeToaster";
+import { Clouds } from "@/components/Clouds";
 import { discordConfigured } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#15101b"
+  themeColor: "#DCEEFF"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,10 +30,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers discordEnabled={discordConfigured}>
+          <Clouds />
           <div className="relative z-10 flex min-h-screen flex-col">
             <Nav />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-            <footer className="border-t border-white/10 px-4 py-6 text-center text-xs text-cocoa-soft">
+            <footer className="border-t border-cocoa/10 px-4 py-6 text-center text-xs text-cocoa-soft">
               Made with 🍓 &amp; 🫖 for the OURCHAT Teaparty · welcome home
             </footer>
           </div>

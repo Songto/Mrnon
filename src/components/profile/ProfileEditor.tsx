@@ -75,7 +75,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-white/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
+        className="w-full rounded-2xl border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
       />
       {hint && <span className="mt-1 block text-[11px] text-cocoa-soft">{hint}</span>}
     </label>
@@ -151,7 +151,7 @@ export function ProfileEditor() {
       </div>
 
       {/* Live preview */}
-      <div className="mb-5 overflow-hidden rounded-cozy border border-white/10">
+      <div className="mb-5 overflow-hidden rounded-cozy border border-cocoa/10">
         <div
           className="h-24 w-full"
           style={{ background: bannerCss(form.bannerId, form.bannerUrl) }}
@@ -293,7 +293,7 @@ export function ProfileEditor() {
               rows={3}
               maxLength={600}
               placeholder="Tell people who you are…"
-              className="w-full rounded-2xl border border-white/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
+              className="w-full rounded-2xl border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
             />
           </label>
 

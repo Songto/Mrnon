@@ -238,8 +238,8 @@ export function FeedBoard() {
                 className="rounded-full px-2.5 py-1 text-xs font-display transition"
                 style={
                   vibe.label === v.label
-                    ? { background: v.accent, color: "#15101b" }
-                    : { background: "rgba(255,255,255,0.06)", color: "#B6A2C2" }
+                    ? { background: v.accent, color: "#5A4636" }
+                    : { background: "rgba(90,70,54,0.07)", color: "#9C8675" }
                 }
               >
                 {v.emoji} {v.label}
@@ -253,7 +253,7 @@ export function FeedBoard() {
             rows={3}
             maxLength={280}
             placeholder="e.g. Anyone up for chill ranked tonight? New friends welcome 💕"
-            className="mt-3 w-full resize-none rounded-2xl border border-white/10 bg-surface/80 px-4 py-2.5 text-sm outline-none [overflow-wrap:anywhere] focus:border-strawberry"
+            className="mt-3 w-full resize-none rounded-2xl border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none [overflow-wrap:anywhere] focus:border-strawberry"
           />
           <div className="mb-1 flex justify-between text-[10px] text-cocoa-soft">
             <span>{text.length}/280</span>
@@ -264,7 +264,7 @@ export function FeedBoard() {
             onChange={(e) => setGame(e.target.value)}
             maxLength={60}
             placeholder="🎮 Game / activity (optional)"
-            className="mt-1 w-full rounded-full border border-white/10 bg-surface/80 px-4 py-2 text-sm outline-none focus:border-strawberry"
+            className="mt-1 w-full rounded-full border border-cocoa/10 bg-surface/80 px-4 py-2 text-sm outline-none focus:border-strawberry"
           />
 
           <CozyButton onClick={submit} disabled={posting || !text.trim()} className="mt-3 w-full">
@@ -400,8 +400,8 @@ export function FeedBoard() {
                         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-display transition active:scale-95"
                         style={
                           iWaved
-                            ? { background: p.accent, color: "#15101b" }
-                            : { background: "rgba(255,255,255,0.06)", color: "#F5E8F0" }
+                            ? { background: p.accent, color: "#5A4636" }
+                            : { background: "rgba(90,70,54,0.07)", color: "#5A4636" }
                         }
                       >
                         <span className={iWaved ? "animate-wiggle" : ""}>👋</span>
@@ -412,7 +412,7 @@ export function FeedBoard() {
                         <button
                           onClick={() => poke(p.authorId, p.authorName, p.authorAvatar, p.authorSlug)}
                           disabled={poked[p.authorId]}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1.5 text-sm font-display text-cocoa transition active:scale-95 disabled:opacity-100"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-cocoa/5 px-3 py-1.5 text-sm font-display text-cocoa transition active:scale-95 disabled:opacity-100"
                           title={`Poke ${p.authorName}`}
                         >
                           <span className={poked[p.authorId] ? "animate-wiggle" : ""}>👉</span>

@@ -197,7 +197,7 @@ export function ChatRoom() {
               </button>
               <button
                 onClick={() => setRoomId(LOBBY.id)}
-                className="mt-3 w-full rounded-full border border-white/10 px-3 py-1.5 text-xs text-cocoa-soft hover:bg-surface"
+                className="mt-3 w-full rounded-full border border-cocoa/10 px-3 py-1.5 text-xs text-cocoa-soft hover:bg-surface"
               >
                 ← Leave room
               </button>
@@ -211,8 +211,8 @@ export function ChatRoom() {
                 Open a private room ✨
               </CozyButton>
               <div className="flex items-center gap-2 px-1 text-[11px] text-cocoa-soft">
-                <span className="h-px flex-1 bg-white/10" /> or join by code{" "}
-                <span className="h-px flex-1 bg-white/10" />
+                <span className="h-px flex-1 bg-cocoa/10" /> or join by code{" "}
+                <span className="h-px flex-1 bg-cocoa/10" />
               </div>
               <div className="flex gap-2">
                 <input
@@ -220,7 +220,7 @@ export function ChatRoom() {
                   onChange={(e) => setJoinInput(cleanCode(e.target.value))}
                   onKeyDown={(e) => e.key === "Enter" && joinPrivate()}
                   placeholder="CODE"
-                  className="w-full rounded-full border border-white/10 bg-surface/80 px-4 py-2 text-center font-display tracking-[0.2em] outline-none focus:border-strawberry"
+                  className="w-full rounded-full border border-cocoa/10 bg-surface/80 px-4 py-2 text-center font-display tracking-[0.2em] outline-none focus:border-strawberry"
                 />
                 <CozyButton
                   variant="soft"
@@ -242,7 +242,7 @@ export function ChatRoom() {
 
       {/* Right: messages + composer */}
       <section className="cozy-card flex h-[70vh] flex-col p-0">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+        <div className="flex items-center justify-between border-b border-cocoa/10 px-5 py-3">
           <h2 className="flex items-center gap-2 text-lg">
             <span>{roomEmoji}</span> {roomName}
           </h2>
@@ -307,7 +307,7 @@ export function ChatRoom() {
           <span className="opacity-70">only the latest 30 messages are kept</span>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-white/10 p-3">
+        <div className="flex items-center gap-2 border-t border-cocoa/10 p-3">
           <input
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}

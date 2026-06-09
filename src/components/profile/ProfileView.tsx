@@ -208,7 +208,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                       setReportReason("");
                       setTimeout(() => reasonRef.current?.focus(), 50);
                     }}
-                    className="rounded-full border border-white/10 px-3 py-2 text-xs text-cocoa-soft hover:bg-surface"
+                    className="rounded-full border border-cocoa/10 px-3 py-2 text-xs text-cocoa-soft hover:bg-surface"
                   >
                     🚩 Report
                   </button>
@@ -281,7 +281,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                 identity ? `Leave a kind word for ${fallback.displayName}…` : "Pull up a chair to comment…"
               }
               maxLength={500}
-              className="flex-1 rounded-full border border-white/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
+              className="flex-1 rounded-full border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
             />
             <CozyButton onClick={sendComment} disabled={sending} className="px-5">
               Post
@@ -361,7 +361,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                   placeholder="What happened?"
                   maxLength={500}
                   rows={4}
-                  className="mt-3 w-full rounded-2xl border border-white/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
+                  className="mt-3 w-full rounded-2xl border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
                 />
                 <div className="mt-3 flex justify-end gap-2">
                   <button

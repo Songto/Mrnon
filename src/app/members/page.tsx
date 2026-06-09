@@ -104,7 +104,7 @@ export default function MembersPage() {
     <div className="space-y-6">
       {/* Hero banner */}
       <div
-        className="relative overflow-hidden rounded-cozy border border-white/10 shadow-cozy"
+        className="relative overflow-hidden rounded-cozy border border-cocoa/10 shadow-cozy"
         style={{ background: "linear-gradient(135deg,#FF5E7E,#E0A6FF 55%,#8B7DF0)" }}
       >
         <div className="absolute inset-0 opacity-30" style={{ background: "radial-gradient(circle at 80% -10%, #FFD9E8, transparent 50%)" }} />

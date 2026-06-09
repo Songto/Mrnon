@@ -25,7 +25,7 @@ export function Nav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-cream/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-cocoa/10 bg-cream/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold">
             <span className="animate-wiggle text-2xl">🍓</span>
@@ -77,7 +77,7 @@ export function Nav() {
         </nav>
 
         {/* Mobile tab bar */}
-        <ul className="flex items-center justify-around border-t border-white/10 px-2 py-1 md:hidden">
+        <ul className="flex items-center justify-around border-t border-cocoa/10 px-2 py-1 md:hidden">
           {LINKS.map((l) => {
             const active = pathname === l.href;
             return (

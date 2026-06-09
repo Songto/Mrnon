@@ -6,7 +6,7 @@ type Variant = "primary" | "soft" | "ghost" | "discord";
 const styles: Record<Variant, string> = {
   primary:
     "bg-strawberry text-night font-semibold shadow-cozy hover:bg-strawberry-deep hover:shadow-glow",
-  soft: "bg-surface text-cocoa border border-white/10 shadow-cozy hover:bg-surface-soft",
+  soft: "bg-surface text-cocoa border border-cocoa/10 shadow-cozy hover:bg-surface-soft",
   ghost: "bg-surface/60 text-cocoa hover:bg-surface",
   discord: "bg-[#5865F2] text-white shadow-cozy hover:bg-[#4752c4]"
 };
