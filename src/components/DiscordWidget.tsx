@@ -61,7 +61,7 @@ export function DiscordWidget() {
           {(data?.members ?? []).map((m, i) => (
             <li
               key={m.username + i}
-              className="flex items-center gap-2 rounded-full bg-white/60 px-3 py-1.5 text-sm"
+              className="flex items-center gap-2 rounded-full bg-surface/60 px-3 py-1.5 text-sm"
             >
               <span
                 className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[m.status] || STATUS_DOT.offline}`}

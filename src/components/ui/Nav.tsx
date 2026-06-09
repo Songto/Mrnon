@@ -11,10 +11,11 @@ import { IdentityModal } from "./IdentityModal";
 
 const LINKS = [
   { href: "/", label: "Parlor", emoji: "🏡" },
-  { href: "/tearoom", label: "Tearoom", emoji: "🍵" },
+  { href: "/tearoom", label: "Rooms", emoji: "💬" },
+  { href: "/members", label: "Members", emoji: "🪪" },
   { href: "/garden", label: "Garden", emoji: "🌿" },
   { href: "/events", label: "Events", emoji: "🎀" },
-  { href: "/profile", label: "Me", emoji: "🪪" }
+  { href: "/profile", label: "Me", emoji: "🍓" }
 ];
 
 export function Nav() {
@@ -24,13 +25,14 @@ export function Nav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/50 bg-cream/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-cream/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold">
-            <span className="animate-wiggle text-2xl">🫖</span>
-            <span className="bg-gradient-to-r from-rose-deep to-sage-deep bg-clip-text text-transparent">
-              Ourchat
+            <span className="animate-wiggle text-2xl">🍓</span>
+            <span className="bg-gradient-to-r from-strawberry to-sage-deep bg-clip-text text-transparent">
+              OURCHAT
             </span>
+            <span className="hidden text-cocoa-soft sm:inline">Teaparty</span>
           </Link>
 
           <ul className="hidden items-center gap-1 md:flex">
@@ -42,7 +44,7 @@ export function Nav() {
                     href={l.href}
                     className={clsx(
                       "cozy-link text-sm",
-                      active ? "bg-rose/40 text-cocoa" : "text-cocoa-soft hover:bg-white/70"
+                      active ? "bg-rose/40 text-cocoa" : "text-cocoa-soft hover:bg-surface/70"
                     )}
                   >
                     <span className="mr-1">{l.emoji}</span>
@@ -60,7 +62,7 @@ export function Nav() {
                 <span className="hidden text-sm font-display sm:block">{identity.name}</span>
                 <button
                   onClick={logout}
-                  className="rounded-full px-2 py-1 text-xs text-cocoa-soft hover:bg-white/70"
+                  className="rounded-full px-2 py-1 text-xs text-cocoa-soft hover:bg-surface/70"
                   title="Leave"
                 >
                   ⏏
@@ -75,7 +77,7 @@ export function Nav() {
         </nav>
 
         {/* Mobile tab bar */}
-        <ul className="flex items-center justify-around border-t border-white/50 px-2 py-1 md:hidden">
+        <ul className="flex items-center justify-around border-t border-white/10 px-2 py-1 md:hidden">
           {LINKS.map((l) => {
             const active = pathname === l.href;
             return (

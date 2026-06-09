@@ -35,8 +35,8 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
             className={clsx(
               "flex flex-col items-center rounded-cozy p-4 text-center transition",
               b.earned
-                ? "bg-white/80 shadow-cozy"
-                : "bg-white/30 opacity-60 grayscale"
+                ? "bg-surface/80 shadow-cozy"
+                : "bg-surface/30 opacity-60 grayscale"
             )}
             title={b.description}
           >

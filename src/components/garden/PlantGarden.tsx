@@ -151,7 +151,7 @@ export function PlantGarden() {
             {online.map((o) => (
               <li
                 key={o.userId}
-                className="flex items-center gap-2 rounded-full bg-white/60 px-3 py-1.5 text-sm"
+                className="flex items-center gap-2 rounded-full bg-surface/60 px-3 py-1.5 text-sm"
               >
                 <Avatar name={o.name} src={o.avatar} size={26} />
                 <span className="truncate">{o.name}</span>

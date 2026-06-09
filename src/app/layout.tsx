@@ -7,13 +7,13 @@ import { BadgeToaster } from "@/components/BadgeToaster";
 import { discordConfigured } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Ourchat 🫖 — a cozy tea-party game community",
+  title: "OURCHAT Teaparty 🍓 — our cozy game community",
   description:
-    "A warm little corner of the internet for our game community. Pull up a chair, sip the tea of the day, grow your garden, and chat live — all linked to our Discord."
+    "The home of the OURCHAT Teaparty community. Pull up a chair, sip the tea of the day, meet the members, and chat live in our cozy rooms — all linked to our Discord."
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FBF5EC"
+  themeColor: "#15101b"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -32,8 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="relative z-10 flex min-h-screen flex-col">
             <Nav />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-            <footer className="border-t border-white/50 px-4 py-6 text-center text-xs text-cocoa-soft">
-              Made with 🫖 &amp; 🌿 for our cozy community · Ourchat
+            <footer className="border-t border-white/10 px-4 py-6 text-center text-xs text-cocoa-soft">
+              Made with 🍓 &amp; 🫖 for the OURCHAT Teaparty · welcome home
             </footer>
           </div>
           <AmbiencePlayer />

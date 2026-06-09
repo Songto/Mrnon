@@ -200,7 +200,7 @@ export function AmbiencePlayer() {
                   "flex flex-col items-center rounded-2xl px-2 py-2 text-xs transition",
                   active[l.key]
                     ? "bg-sage text-cocoa shadow-cozy"
-                    : "bg-white/60 text-cocoa-soft hover:bg-white"
+                    : "bg-surface/60 text-cocoa-soft hover:bg-surface"
                 )}
               >
                 <span className="text-lg">{l.emoji}</span>
@@ -228,7 +228,7 @@ export function AmbiencePlayer() {
         onClick={() => setOpen((o) => !o)}
         className={clsx(
           "flex h-14 w-14 items-center justify-center rounded-full shadow-cozy-lg transition hover:-translate-y-0.5",
-          anyOn ? "bg-rose-deep text-white animate-float-slow" : "bg-white text-cocoa"
+          anyOn ? "bg-rose-deep text-white animate-float-slow" : "bg-surface text-cocoa"
         )}
         title="Cozy ambience"
       >

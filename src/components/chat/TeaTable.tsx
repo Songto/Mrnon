@@ -36,7 +36,7 @@ export function TeaTable({ seats, meId }: { seats: Seat[]; meId?: string }) {
             <div className={isMe ? "animate-float-slow" : ""}>
               <Avatar name={s.name} src={s.avatar} size={isMe ? 44 : 38} />
             </div>
-            <span className="mt-0.5 max-w-[64px] truncate rounded-full bg-white/70 px-1.5 text-[10px]">
+            <span className="mt-0.5 max-w-[64px] truncate rounded-full bg-surface/70 px-1.5 text-[10px]">
               {isMe ? "you" : s.name}
             </span>
           </div>
@@ -44,7 +44,7 @@ export function TeaTable({ seats, meId }: { seats: Seat[]; meId?: string }) {
       })}
 
       {seats.length > 10 && (
-        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-white/80 px-2 py-0.5 text-[10px]">
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-surface/80 px-2 py-0.5 text-[10px]">
           +{seats.length - 10} more
         </span>
       )}

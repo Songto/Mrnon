@@ -1,7 +1,7 @@
 import { clsx } from "@/lib/clsx";
 
 // Deterministic cozy color from a name, for guest avatars.
-const PALETTE = ["#E7B7A8", "#A8C3A1", "#C9BCE0", "#F0C987", "#C7D8B0", "#D49484"];
+const PALETTE = ["#FF8FB0", "#9FC79A", "#C9BCE0", "#F0C987", "#E0A6FF", "#7FD0C0"];
 
 function colorFor(name: string): string {
   let h = 0;
@@ -29,7 +29,7 @@ export function Avatar({
         alt={name}
         width={size}
         height={size}
-        className={clsx("rounded-full object-cover ring-2 ring-white/80", className)}
+        className={clsx("rounded-full object-cover ring-2 ring-white/15", className)}
         style={{ width: size, height: size }}
       />
     );
@@ -37,7 +37,7 @@ export function Avatar({
   return (
     <span
       className={clsx(
-        "inline-flex items-center justify-center rounded-full font-display font-bold text-white ring-2 ring-white/80",
+        "inline-flex items-center justify-center rounded-full font-display font-bold text-white ring-2 ring-white/15",
         className
       )}
       style={{ width: size, height: size, background: colorFor(name), fontSize: size * 0.42 }}

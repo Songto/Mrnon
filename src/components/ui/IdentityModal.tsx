@@ -55,7 +55,7 @@ export function IdentityModal({ onClose }: { onClose: () => void }) {
           onKeyDown={(e) => e.key === "Enter" && submitGuest()}
           placeholder={randomGuestName()}
           maxLength={24}
-          className="mt-1 w-full rounded-2xl border border-rose/40 bg-white/80 px-4 py-2.5 outline-none focus:border-rose-deep"
+          className="mt-1 w-full rounded-2xl border border-rose/40 bg-surface/80 px-4 py-2.5 outline-none focus:border-rose-deep"
         />
         <CozyButton className="mt-4 w-full" onClick={submitGuest}>
           Enter the parlor ✨

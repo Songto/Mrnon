@@ -7,15 +7,15 @@ import { CozyLinkButton } from "@/components/ui/CozyButton";
 const FEATURES = [
   {
     href: "/tearoom",
-    emoji: "🍵",
-    title: "Tea-table chat rooms",
-    text: "Pull up a chair at a themed table and chat live with friends, seats and all."
+    emoji: "💬",
+    title: "Live chat rooms",
+    text: "Our Discord channels reborn as cozy tables — lobby, memes, fps wolf, horror & more."
   },
   {
-    href: "/garden",
-    emoji: "🌿",
-    title: "Grow your garden",
-    text: "Every cozy moment here grows your little plant. Water friends to help them bloom."
+    href: "/members",
+    emoji: "🪪",
+    title: "Meet the members",
+    text: "From Householders to Inner Members — see everyone's place at the table and who's online."
   },
   {
     href: "/events",
@@ -33,26 +33,26 @@ export default function HomePage() {
       {/* Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-2">
         <div>
-          <span className="inline-block rounded-full bg-white/70 px-4 py-1 text-xs font-display text-rose-deep">
-            🫖 a cozy corner for our game community
+          <span className="inline-block rounded-full bg-surface/70 px-4 py-1 text-xs font-display text-strawberry">
+            🍓 the home of our cozy game community
           </span>
           <h1 className="mt-4 text-4xl leading-tight sm:text-5xl">
             Welcome to{" "}
-            <span className="bg-gradient-to-r from-rose-deep to-sage-deep bg-clip-text text-transparent">
-              Ourchat
+            <span className="bg-gradient-to-r from-strawberry to-sage-deep bg-clip-text text-transparent">
+              OURCHAT Teaparty
             </span>
             <br />
-            our little tea garden 🌸
+            our cozy little garden 🌸
           </h1>
           <p className="mt-4 max-w-md text-cocoa-soft">
-            A warm, slow place to hang out between quests. Steep some tea, chat live at the
-            tearoom tables, grow a garden of friends, and stay linked with our Discord — all
-            in one cozy spot.
+            A warm, slow place to hang out between quests. Steep some tea, chat live in our
+            rooms, meet the teaparty members, and stay linked with our Discord — all in one
+            cozy spot.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <CozyLinkButton href="/tearoom">Enter the tearoom 🍵</CozyLinkButton>
-            <CozyLinkButton href="/garden" variant="soft">
-              Visit the garden 🌿
+            <CozyLinkButton href="/tearoom">Enter the rooms 💬</CozyLinkButton>
+            <CozyLinkButton href="/members" variant="soft">
+              Meet the members 🪪
             </CozyLinkButton>
           </div>
         </div>

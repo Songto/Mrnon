@@ -1,40 +1,62 @@
-// Tea-table chat rooms. Each is a themed table you can pull up a chair to.
+// Chat rooms that mirror our OURCHAT Teaparty Discord channels.
+// Each one is a cozy table you can pull up a chair to.
 export type Room = {
   id: string;
   name: string;
   emoji: string;
   blurb: string;
-  accent: string; // tailwind bg color class for the tablecloth
+  category: string; // matches the Discord category it lives under
+  accent: string; // translucent tablecloth tint (dark-theme friendly)
 };
 
 export const ROOMS: Room[] = [
   {
-    id: "chamomile-corner",
-    name: "Chamomile Corner",
-    emoji: "🌼",
-    blurb: "A gentle, sleepy nook for soft conversation.",
-    accent: "bg-honey/40"
+    id: "lobby",
+    name: "lobby",
+    emoji: "💬",
+    blurb: "Where everyone first gathers — say hi and pull up a chair.",
+    category: "start point",
+    accent: "bg-strawberry/15"
   },
   {
-    id: "matcha-booth",
-    name: "Matcha Booth",
-    emoji: "🍵",
-    blurb: "Bright and lively — game talk and quick quests.",
-    accent: "bg-matcha/60"
+    id: "memes",
+    name: "memes",
+    emoji: "😹",
+    blurb: "Drop your funniest finds and cursed screenshots.",
+    category: "start point",
+    accent: "bg-honey/15"
   },
   {
-    id: "midnight-oolong",
-    name: "Midnight Oolong",
-    emoji: "🌙",
-    blurb: "Late-night lo-fi chats under string lights.",
-    accent: "bg-lavender/50"
+    id: "screenshot-videos",
+    name: "screenshot-videos",
+    emoji: "📸",
+    blurb: "Show off clutch plays and pretty in-game moments.",
+    category: "start point",
+    accent: "bg-lavender/15"
   },
   {
-    id: "strawberry-parlor",
-    name: "Strawberry Parlor",
-    emoji: "🍓",
-    blurb: "Cheerful catch-ups and sweet little wins.",
-    accent: "bg-rose/40"
+    id: "fps-wolf",
+    name: "fps wolf",
+    emoji: "🐺",
+    blurb: "Squad up for shooters and call your next match.",
+    category: "game zone",
+    accent: "bg-sage/15"
+  },
+  {
+    id: "horror",
+    name: "horror",
+    emoji: "👻",
+    blurb: "Spooky co-op nights — bring a friend to hide behind.",
+    category: "game zone",
+    accent: "bg-strawberry/15"
+  },
+  {
+    id: "karaoke",
+    name: "karaoke",
+    emoji: "🎤",
+    blurb: "Late-night singalongs under the string lights.",
+    category: "game zone",
+    accent: "bg-rose/15"
   }
 ];
 

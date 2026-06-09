@@ -79,34 +79,34 @@ export function EventCalendar() {
             placeholder="Event title (e.g. Stardew co-op night)"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full rounded-2xl border border-rose/30 bg-white/80 px-4 py-2 outline-none focus:border-rose-deep"
+            className="w-full rounded-2xl border border-rose/30 bg-surface/80 px-4 py-2 outline-none focus:border-rose-deep"
           />
           <textarea
             placeholder="What's the plan? Bring tea, bring friends…"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={2}
-            className="w-full rounded-2xl border border-rose/30 bg-white/80 px-4 py-2 outline-none focus:border-rose-deep"
+            className="w-full rounded-2xl border border-rose/30 bg-surface/80 px-4 py-2 outline-none focus:border-rose-deep"
           />
           <div className="grid grid-cols-2 gap-3">
             <input
               type="date"
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="rounded-2xl border border-rose/30 bg-white/80 px-4 py-2 outline-none focus:border-rose-deep"
+              className="rounded-2xl border border-rose/30 bg-surface/80 px-4 py-2 outline-none focus:border-rose-deep"
             />
             <input
               type="time"
               value={form.time}
               onChange={(e) => setForm({ ...form, time: e.target.value })}
-              className="rounded-2xl border border-rose/30 bg-white/80 px-4 py-2 outline-none focus:border-rose-deep"
+              className="rounded-2xl border border-rose/30 bg-surface/80 px-4 py-2 outline-none focus:border-rose-deep"
             />
           </div>
           <input
             placeholder="Discord channel / invite link (optional)"
             value={form.discordUrl}
             onChange={(e) => setForm({ ...form, discordUrl: e.target.value })}
-            className="w-full rounded-2xl border border-rose/30 bg-white/80 px-4 py-2 outline-none focus:border-rose-deep"
+            className="w-full rounded-2xl border border-rose/30 bg-surface/80 px-4 py-2 outline-none focus:border-rose-deep"
           />
           <CozyButton onClick={submit} disabled={!form.title || !form.date}>
             Add to calendar ✨

@@ -126,7 +126,7 @@ export function ChatRoom() {
                 onClick={() => setRoomId(r.id)}
                 className={clsx(
                   "flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm transition",
-                  r.id === roomId ? "bg-rose/40" : "hover:bg-white/70"
+                  r.id === roomId ? "bg-rose/40" : "hover:bg-surface/70"
                 )}
               >
                 <span className="text-xl">{r.emoji}</span>
@@ -145,7 +145,7 @@ export function ChatRoom() {
 
       {/* Right: messages + composer */}
       <section className="cozy-card flex h-[70vh] flex-col p-0">
-        <div className="flex items-center justify-between border-b border-white/60 px-5 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
           <h2 className="flex items-center gap-2 text-lg">
             <span>{room.emoji}</span> {room.name}
           </h2>
@@ -187,7 +187,7 @@ export function ChatRoom() {
                   <div
                     className={clsx(
                       "inline-block rounded-2xl px-3.5 py-2 text-sm shadow-cozy",
-                      mine ? "bg-rose-deep text-white" : "bg-white"
+                      mine ? "bg-strawberry text-night" : "bg-surface"
                     )}
                   >
                     {m.text}
@@ -205,14 +205,14 @@ export function ChatRoom() {
             } ${typingNames.length === 1 ? "is" : "are"} typing…`}
         </div>
 
-        <div className="flex items-center gap-2 border-t border-white/60 p-3">
+        <div className="flex items-center gap-2 border-t border-white/10 p-3">
           <input
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder={`Message ${room.name}…`}
             maxLength={600}
-            className="flex-1 rounded-full border border-rose/30 bg-white/80 px-4 py-2.5 outline-none focus:border-rose-deep"
+            className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none focus:border-rose-deep"
           />
           <CozyButton onClick={send} disabled={!draft.trim()} className="px-5">
             Send 🫖

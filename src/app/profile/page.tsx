@@ -84,7 +84,7 @@ export default function ProfilePage() {
                 Growth score: {plant?.score ?? 0}
                 {plant?.next && ` · next: ${plant.next.label} at ${plant.next.min}`}
               </p>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/70">
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface/70">
                 <div
                   className="h-full rounded-full bg-sage-deep transition-all"
                   style={{ width: `${Math.round((plant?.progress ?? 0) * 100)}%` }}
