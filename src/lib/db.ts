@@ -1,0 +1,338 @@
+// Tiny JSON-file-backed store. Chosen over a native DB so the app runs with
+// ZERO setup (no compilation, no migrations). It's a clean seam: swap the
+// read()/write() internals for SQLite/Postgres later without touching callers.
+
+import fs from "node:fs";
+import path from "node:path";
+import { BADGES, evaluateBadges, type UserStats } from "./badges";
+
+export type UserRecord = {
+  id: string;
+  name: string;
+  avatar?: string;
+  messages: number;
+  nightMessages: number;
+  visitDays: string[]; // ISO date strings, deduped
+  eventsAttended: number;
+  eventsHosted: number;
+  wateredOthers: number;
+  waterReceived: number;
+  badges: string[];
+  createdAt: number;
+  lastSeen: number;
+};
+
+export type EventRecord = {
+  id: string;
+  title: string;
+  description: string;
+  date: string; // YYYY-MM-DD
+  time: string; // e.g. "19:00"
+  host: string;
+  discordUrl?: string;
+  attendees: string[]; // userIds
+};
+
+type DBShape = {
+  users: Record<string, UserRecord>;
+  events: EventRecord[];
+};
+
+const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_FILE = path.join(DATA_DIR, "store.json");
+
+let cache: DBShape | null = null;
+let cachedMtime = 0;
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function seed(): DBShape {
+  const t = new Date();
+  const inDays = (n: number) => {
+    const d = new Date(t);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  return {
+    users: {},
+    events: [
+      {
+        id: "evt-cozy-cottage-night",
+        title: "Cozy Cottage Game Night 🏡",
+        description:
+          "We're booting up our favourite farming sim and tending fields together. Bring tea, bring snacks, claim a plot!",
+        date: inDays(2),
+        time: "19:00",
+        host: "TeaMistress",
+        discordUrl: "https://discord.gg/your-invite",
+        attendees: []
+      },
+      {
+        id: "evt-midnight-tea",
+        title: "Midnight Tea & Chill ☕🌙",
+        description:
+          "A quiet late-night hangout in the Midnight Oolong room. Lo-fi on, cameras off, just vibes and slow conversation.",
+        date: inDays(5),
+        time: "23:30",
+        host: "MoonDrop",
+        discordUrl: "https://discord.gg/your-invite",
+        attendees: []
+      },
+      {
+        id: "evt-spring-teaparty",
+        title: "Spring Tea Party Festival 🌸",
+        description:
+          "Our monthly themed bash! Dress your avatar in pastels, join the costume showcase, and win flower badges.",
+        date: inDays(12),
+        time: "16:00",
+        host: "PetalPip",
+        discordUrl: "https://discord.gg/your-invite",
+        attendees: []
+      }
+    ]
+  };
+}
+
+function loadFromDisk(): DBShape | null {
+  try {
+    const stat = fs.statSync(DATA_FILE);
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8")) as DBShape;
+    if (!data.users) data.users = {};
+    if (!data.events) data.events = [];
+    cachedMtime = stat.mtimeMs;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+// NOTE: the Socket.IO server (run via tsx) and the Next API routes (bundled by
+// Next) load this module as SEPARATE instances, so each keeps its own `cache`.
+// To stay coherent we re-read the shared file whenever its mtime changes.
+function read(): DBShape {
+  if (cache) {
+    try {
+      const stat = fs.statSync(DATA_FILE);
+      if (stat.mtimeMs !== cachedMtime) {
+        const fresh = loadFromDisk();
+        if (fresh) cache = fresh;
+      }
+    } catch {
+      /* file missing/unreadable — keep the in-memory cache */
+    }
+    return cache;
+  }
+  const loaded = loadFromDisk();
+  if (loaded) {
+    cache = loaded;
+    return cache;
+  }
+  cache = seed();
+  write();
+  return cache;
+}
+
+function write(): void {
+  if (!cache) return;
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(DATA_FILE, JSON.stringify(cache, null, 2), "utf8");
+    cachedMtime = fs.statSync(DATA_FILE).mtimeMs;
+  } catch {
+    /* best-effort persistence; ephemeral environments may be read-only */
+  }
+}
+
+function statsOf(u: UserRecord): UserStats {
+  return {
+    messages: u.messages,
+    nightMessages: u.nightMessages,
+    daysVisited: u.visitDays.length,
+    eventsAttended: u.eventsAttended,
+    eventsHosted: u.eventsHosted,
+    wateredOthers: u.wateredOthers,
+    waterReceived: u.waterReceived,
+    growth: growthScore(u)
+  };
+}
+
+// ---- Garden growth model ----
+export const GROWTH_STAGES = [
+  { key: "seed", label: "Seedling", emoji: "🌰", min: 0 },
+  { key: "sprout", label: "Sprout", emoji: "🌱", min: 5 },
+  { key: "leafy", label: "Leafy", emoji: "🌿", min: 20 },
+  { key: "budding", label: "Budding", emoji: "🪴", min: 50 },
+  { key: "bloom", label: "In Bloom", emoji: "🌸", min: 100 },
+  { key: "flourishing", label: "Flourishing", emoji: "🌺", min: 200 }
+] as const;
+
+export function growthScore(u: UserRecord): number {
+  return (
+    u.messages +
+    u.eventsAttended * 5 +
+    u.eventsHosted * 8 +
+    u.visitDays.length * 3 +
+    u.waterReceived * 2
+  );
+}
+
+export function stageFor(score: number) {
+  let stage: (typeof GROWTH_STAGES)[number] = GROWTH_STAGES[0];
+  let index = 0;
+  GROWTH_STAGES.forEach((s, i) => {
+    if (score >= s.min) {
+      stage = s;
+      index = i;
+    }
+  });
+  const next = GROWTH_STAGES[index + 1];
+  const progress = next
+    ? Math.min(1, (score - stage.min) / (next.min - stage.min))
+    : 1;
+  return { stage, index, next, progress };
+}
+
+function ensureUser(userId: string, name: string, avatar?: string): UserRecord {
+  const db = read();
+  let u = db.users[userId];
+  if (!u) {
+    u = {
+      id: userId,
+      name,
+      avatar,
+      messages: 0,
+      nightMessages: 0,
+      visitDays: [],
+      eventsAttended: 0,
+      eventsHosted: 0,
+      wateredOthers: 0,
+      waterReceived: 0,
+      badges: [],
+      createdAt: Date.now(),
+      lastSeen: Date.now()
+    };
+    db.users[userId] = u;
+  }
+  u.name = name || u.name;
+  if (avatar) u.avatar = avatar;
+  u.lastSeen = Date.now();
+  const day = todayISO();
+  if (!u.visitDays.includes(day)) u.visitDays.push(day);
+  return u;
+}
+
+function awardNewBadges(u: UserRecord) {
+  const fresh = evaluateBadges(statsOf(u), u.badges);
+  fresh.forEach((b) => u.badges.push(b.id));
+  return fresh.map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, description: b.description }));
+}
+
+// ---- Public API ----
+
+export type ActivityType = "message" | "visit" | "attend" | "host";
+
+export function recordActivity(userId: string, name: string, type: ActivityType, avatar?: string) {
+  const db = read();
+  const u = ensureUser(userId, name, avatar);
+  if (type === "message") {
+    u.messages += 1;
+    const hr = new Date().getHours();
+    if (hr >= 0 && hr < 5) u.nightMessages += 1;
+  } else if (type === "attend") {
+    u.eventsAttended += 1;
+  } else if (type === "host") {
+    u.eventsHosted += 1;
+  }
+  const newBadges = awardNewBadges(u);
+  cache = db;
+  write();
+  return { user: u, newBadges };
+}
+
+export function getUser(userId: string): UserRecord | undefined {
+  return read().users[userId];
+}
+
+export function listGarden() {
+  const db = read();
+  return Object.values(db.users)
+    .map((u) => {
+      const score = growthScore(u);
+      const { stage, progress } = stageFor(score);
+      return {
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        score,
+        stage: stage.key,
+        stageLabel: stage.label,
+        emoji: stage.emoji,
+        progress,
+        waterReceived: u.waterReceived,
+        badges: u.badges
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+export function waterPlant(targetId: string, gardenerId: string, gardenerName: string) {
+  const db = read();
+  const target = db.users[targetId];
+  if (!target) return { ok: false as const, error: "No such plant" };
+  target.waterReceived += 1;
+  // The gardener gets credit too (for the Good Neighbor badge).
+  const gardener = ensureUser(gardenerId, gardenerName);
+  gardener.wateredOthers += 1;
+  const newBadges = awardNewBadges(gardener);
+  cache = db;
+  write();
+  return { ok: true as const, target: target.name, newBadges };
+}
+
+export function listEvents(): EventRecord[] {
+  return [...read().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+}
+
+export function createEvent(input: Omit<EventRecord, "id" | "attendees">) {
+  const db = read();
+  const evt: EventRecord = {
+    ...input,
+    id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    attendees: []
+  };
+  db.events.push(evt);
+  // Hosting earns activity/badges.
+  if (input.host) recordActivity(slugUser(input.host), input.host, "host");
+  cache = db;
+  write();
+  return evt;
+}
+
+export function rsvpEvent(eventId: string, userId: string, name: string) {
+  const db = read();
+  const evt = db.events.find((e) => e.id === eventId);
+  if (!evt) return { ok: false as const, error: "No such event" };
+  let newBadges: { id: string; name: string; emoji: string; description: string }[] = [];
+  if (!evt.attendees.includes(userId)) {
+    evt.attendees.push(userId);
+    newBadges = recordActivity(userId, name, "attend").newBadges;
+  }
+  cache = db;
+  write();
+  return { ok: true as const, event: evt, newBadges };
+}
+
+export function badgesForUser(userId: string): string[] {
+  return read().users[userId]?.badges ?? [];
+}
+
+export function allBadgeDefs() {
+  return BADGES.map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, description: b.description }));
+}
+
+// Deterministic id for free-text names (used for demo guests / event hosts).
+export function slugUser(name: string): string {
+  return "guest:" + name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 40);
+}
