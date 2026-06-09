@@ -95,12 +95,25 @@ export type FeedPost = {
 
 export const FEED_TTL_MS = 90 * 60 * 1000;
 
+// A friendly "poke" — a little nudge from one member to another.
+export type Poke = {
+  id: string;
+  toId: string;
+  fromId: string;
+  fromName: string;
+  fromAvatar?: string;
+  fromSlug: string;
+  ts: number;
+  seen: boolean;
+};
+
 type DBShape = {
   users: Record<string, UserRecord>;
   events: EventRecord[];
   profiles: Record<string, ProfileRecord>;
   profileReports: ProfileReport[];
   feedPosts: FeedPost[];
+  pokes: Poke[];
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -159,7 +172,8 @@ function seed(): DBShape {
     ],
     profiles: {},
     profileReports: [],
-    feedPosts: []
+    feedPosts: [],
+    pokes: []
   };
 }
 
@@ -172,6 +186,7 @@ function loadFromDisk(): DBShape | null {
     if (!data.profiles) data.profiles = {};
     if (!data.profileReports) data.profileReports = [];
     if (!data.feedPosts) data.feedPosts = [];
+    if (!data.pokes) data.pokes = [];
     cachedMtime = stat.mtimeMs;
     return data;
   } catch {
@@ -593,6 +608,87 @@ export function deleteFeedPost(postId: string, userId: string) {
   if (!post) return { ok: false as const, error: "No post" };
   if (post.authorId !== userId) return { ok: false as const, error: "Not your post" };
   db.feedPosts = db.feedPosts.filter((p) => p.id !== postId);
+  cache = db;
+  write();
+  return { ok: true as const };
+}
+
+// ---- Pokes (friendly nudges between members) ----
+
+const POKE_THROTTLE_MS = 30 * 1000; // ignore repeat pokes to the same person
+const MAX_POKES_PER_USER = 50;
+
+export function pokeUser(input: {
+  toId: string;
+  fromId: string;
+  fromName: string;
+  fromAvatar?: string;
+  fromSlug: string;
+}): { ok: true; poke: Poke } | { ok: false; error: string } {
+  if (input.toId === input.fromId) return { ok: false, error: "You can't poke yourself!" };
+  const db = read();
+  const now = Date.now();
+  // Throttle: collapse rapid repeat pokes from the same person into one (refresh it).
+  const recent = db.pokes.find(
+    (p) => p.toId === input.toId && p.fromId === input.fromId && now - p.ts < POKE_THROTTLE_MS
+  );
+  if (recent) {
+    recent.ts = now;
+    recent.seen = false;
+    cache = db;
+    write();
+    return { ok: true, poke: recent };
+  }
+  const poke: Poke = {
+    id: `p-${now}-${Math.random().toString(36).slice(2, 6)}`,
+    toId: input.toId,
+    fromId: input.fromId,
+    fromName: input.fromName,
+    fromAvatar: input.fromAvatar,
+    fromSlug: input.fromSlug,
+    ts: now,
+    seen: false
+  };
+  db.pokes.push(poke);
+  // Keep only the most recent pokes per recipient.
+  const mine = db.pokes.filter((p) => p.toId === input.toId);
+  if (mine.length > MAX_POKES_PER_USER) {
+    const excess = mine.slice(0, mine.length - MAX_POKES_PER_USER).map((p) => p.id);
+    db.pokes = db.pokes.filter((p) => !excess.includes(p.id));
+  }
+  cache = db;
+  write();
+  return { ok: true, poke };
+}
+
+export function listPokes(userId: string): { pokes: Poke[]; unseen: number } {
+  const pokes = read()
+    .pokes.filter((p) => p.toId === userId)
+    .sort((a, b) => b.ts - a.ts);
+  return { pokes, unseen: pokes.filter((p) => !p.seen).length };
+}
+
+export function markPokesSeen(userId: string) {
+  const db = read();
+  let changed = false;
+  for (const p of db.pokes) {
+    if (p.toId === userId && !p.seen) {
+      p.seen = true;
+      changed = true;
+    }
+  }
+  if (changed) {
+    cache = db;
+    write();
+  }
+  return { ok: true as const };
+}
+
+export function clearPoke(pokeId: string, userId: string) {
+  const db = read();
+  const poke = db.pokes.find((p) => p.id === pokeId);
+  if (!poke || poke.toId !== userId) return { ok: false as const, error: "Not allowed" };
+  db.pokes = db.pokes.filter((p) => p.id !== pokeId);
   cache = db;
   write();
   return { ok: true as const };

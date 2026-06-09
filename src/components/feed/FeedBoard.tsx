@@ -23,6 +23,16 @@ type Post = {
   expiresAt: number;
 };
 
+type Poke = {
+  id: string;
+  fromId: string;
+  fromName: string;
+  fromAvatar?: string;
+  fromSlug: string;
+  ts: number;
+  seen: boolean;
+};
+
 const VIBES = [
   { label: "chill", emoji: "😌", accent: "#7FD0C0" },
   { label: "competitive", emoji: "🔥", accent: "#FF5E7E" },
@@ -62,6 +72,8 @@ export function FeedBoard() {
   const [vibe, setVibe] = useState(VIBES[0]);
   const [showLogin, setShowLogin] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [poked, setPoked] = useState<Record<string, boolean>>({}); // authorId -> just poked
+  const [pokes, setPokes] = useState<Poke[]>([]);
   const loadedOnce = useRef(false);
 
   const load = () =>
@@ -70,12 +82,73 @@ export function FeedBoard() {
       .then((d) => setPosts(d.posts ?? []))
       .catch(() => {});
 
+  const loadPokes = (markSeen = false) => {
+    if (!identity) return;
+    fetch(`/api/pokes?user=${encodeURIComponent(identity.userId)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setPokes(d.pokes ?? []);
+        if (markSeen && (d.unseen ?? 0) > 0) {
+          fetch("/api/pokes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "seen", user: identity.userId })
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     load();
     const t = setInterval(load, 20000); // keep the feed fresh
     loadedOnce.current = true;
     return () => clearInterval(t);
   }, []);
+
+  // Load (and mark seen) the current member's pokes, then poll for new ones.
+  useEffect(() => {
+    loadPokes(true);
+    const t = setInterval(() => loadPokes(false), 20000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [identity?.userId]);
+
+  const poke = async (
+    toId: string,
+    toName: string,
+    toAvatar?: string,
+    toSlug?: string
+  ) => {
+    if (!identity) {
+      setShowLogin(true);
+      return;
+    }
+    setPoked((p) => ({ ...p, [toId]: true }));
+    setTimeout(() => setPoked((p) => ({ ...p, [toId]: false })), 4000);
+    await fetch("/api/pokes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "poke",
+        toId,
+        fromId: identity.userId,
+        fromName: identity.name,
+        fromAvatar: identity.avatar,
+        fromSlug: memberSlug(identity.name)
+      })
+    }).catch(() => {});
+  };
+
+  const dismissPoke = async (pokeId: string) => {
+    if (!identity) return;
+    setPokes((ps) => ps.filter((p) => p.id !== pokeId));
+    await fetch("/api/pokes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "clear", pokeId, user: identity.userId })
+    }).catch(() => {});
+  };
 
   const myPost = identity ? posts.find((p) => p.authorId === identity.userId) : undefined;
 
@@ -204,6 +277,44 @@ export function FeedBoard() {
           )}
         </div>
 
+        {/* Pokes you've received */}
+        {identity && pokes.length > 0 && (
+          <div className="cozy-card p-4">
+            <p className="mb-2 font-display text-sm">👉 Your pokes ({pokes.length})</p>
+            <ul className="space-y-1.5">
+              {pokes.map((pk) => (
+                <li key={pk.id} className="flex items-center gap-2 rounded-2xl bg-surface/60 px-2 py-1.5">
+                  <Link href={`/members/${pk.fromSlug}`} className="shrink-0">
+                    <Avatar name={pk.fromName} src={pk.fromAvatar} size={32} />
+                  </Link>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm">
+                      <Link href={`/members/${pk.fromSlug}`} className="font-display hover:underline">
+                        {pk.fromName}
+                      </Link>{" "}
+                      <span className="text-cocoa-soft">poked you</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => poke(pk.fromId, pk.fromName, pk.fromAvatar, pk.fromSlug)}
+                    disabled={poked[pk.fromId]}
+                    className="shrink-0 rounded-full bg-strawberry/20 px-2.5 py-1 text-[11px] font-display text-strawberry transition active:scale-95"
+                  >
+                    {poked[pk.fromId] ? "poked!" : "poke back 👉"}
+                  </button>
+                  <button
+                    onClick={() => dismissPoke(pk.id)}
+                    className="shrink-0 px-1 text-cocoa-soft hover:text-strawberry"
+                    title="Dismiss"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="cozy-card flex items-center gap-3 p-4 text-xs text-cocoa-soft">
           <span className="text-2xl">⏳</span>
           <span>Posts gently fade away after 90 minutes, so the feed always shows folks who are around <i>right now</i>.</span>
@@ -283,18 +394,32 @@ export function FeedBoard() {
                   </div>
 
                   <div className="mt-auto flex items-center justify-between">
-                    <button
-                      onClick={() => wave(p.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-display transition active:scale-95"
-                      style={
-                        iWaved
-                          ? { background: p.accent, color: "#15101b" }
-                          : { background: "rgba(255,255,255,0.06)", color: "#F5E8F0" }
-                      }
-                    >
-                      <span className={iWaved ? "animate-wiggle" : ""}>👋</span>
-                      {p.waves.length > 0 ? p.waves.length : "wave"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => wave(p.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-display transition active:scale-95"
+                        style={
+                          iWaved
+                            ? { background: p.accent, color: "#15101b" }
+                            : { background: "rgba(255,255,255,0.06)", color: "#F5E8F0" }
+                        }
+                      >
+                        <span className={iWaved ? "animate-wiggle" : ""}>👋</span>
+                        {p.waves.length > 0 ? p.waves.length : "wave"}
+                      </button>
+
+                      {!mine && (
+                        <button
+                          onClick={() => poke(p.authorId, p.authorName, p.authorAvatar, p.authorSlug)}
+                          disabled={poked[p.authorId]}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-3 py-1.5 text-sm font-display text-cocoa transition active:scale-95 disabled:opacity-100"
+                          title={`Poke ${p.authorName}`}
+                        >
+                          <span className={poked[p.authorId] ? "animate-wiggle" : ""}>👉</span>
+                          {poked[p.authorId] ? "poked!" : "poke"}
+                        </button>
+                      )}
+                    </div>
 
                     {mine ? (
                       <button
