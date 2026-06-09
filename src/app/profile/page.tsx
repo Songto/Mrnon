@@ -7,6 +7,7 @@ import { Plant } from "@/components/garden/Plant";
 import { BadgeShelf } from "@/components/events/BadgeShelf";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
+import { ProfileEditor } from "@/components/profile/ProfileEditor";
 
 const STAGE_ORDER = ["seed", "sprout", "leafy", "budding", "bloom", "flourishing"];
 
@@ -103,6 +104,8 @@ export default function ProfilePage() {
           </p>
         </div>
       </div>
+
+      <ProfileEditor />
 
       <section>
         <h3 className="mb-3 text-xl">Your badge shelf 🏆</h3>

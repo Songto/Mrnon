@@ -33,9 +33,54 @@ export type EventRecord = {
   attendees: string[]; // userIds
 };
 
+export type ProfileComment = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  text: string;
+  ts: number;
+};
+
+export type ProfileReport = {
+  id: string;
+  slug: string;
+  reporterId: string;
+  reporterName: string;
+  reason: string;
+  ts: number;
+};
+
+// Customizable "find-a-friend" profile card for a member.
+export type ProfileRecord = {
+  slug: string;
+  ownerId?: string; // locked to the first person who edits it
+  displayName: string;
+  tagline?: string;
+  bio?: string;
+  pronouns?: string;
+  region?: string;
+  ageRange?: string;
+  favoriteGames?: string;
+  lookingFor?: string;
+  vibe?: string;
+  accent: string;
+  bannerId: string;
+  bannerUrl?: string;
+  backgroundId: string;
+  backgroundUrl?: string;
+  musicUrl?: string;
+  discord?: string;
+  twitch?: string;
+  comments: ProfileComment[];
+  updatedAt: number;
+};
+
 type DBShape = {
   users: Record<string, UserRecord>;
   events: EventRecord[];
+  profiles: Record<string, ProfileRecord>;
+  profileReports: ProfileReport[];
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -91,7 +136,9 @@ function seed(): DBShape {
         discordUrl: "https://discord.gg/your-invite",
         attendees: []
       }
-    ]
+    ],
+    profiles: {},
+    profileReports: []
   };
 }
 
@@ -101,6 +148,8 @@ function loadFromDisk(): DBShape | null {
     const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8")) as DBShape;
     if (!data.users) data.users = {};
     if (!data.events) data.events = [];
+    if (!data.profiles) data.profiles = {};
+    if (!data.profileReports) data.profileReports = [];
     cachedMtime = stat.mtimeMs;
     return data;
   } catch {
@@ -335,4 +384,117 @@ export function allBadgeDefs() {
 // Deterministic id for free-text names (used for demo guests / event hosts).
 export function slugUser(name: string): string {
   return "guest:" + name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 40);
+}
+
+// ---- Member profiles (customizable cards + comments + reports) ----
+
+function defaultProfile(slug: string, displayName: string): ProfileRecord {
+  return {
+    slug,
+    displayName,
+    accent: "#FF5E7E",
+    bannerId: "berry",
+    backgroundId: "plum",
+    comments: [],
+    updatedAt: 0
+  };
+}
+
+// Returns the stored profile, or a fresh default (not yet persisted) so the
+// view always has something to render. `displayName` seeds new profiles.
+export function getProfile(slug: string, displayName?: string): ProfileRecord {
+  const db = read();
+  const existing = db.profiles[slug];
+  if (existing) {
+    if (displayName && !existing.displayName) existing.displayName = displayName;
+    return existing;
+  }
+  return defaultProfile(slug, displayName || slug);
+}
+
+const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
+  "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
+  "favoriteGames", "lookingFor", "vibe", "accent", "bannerId", "bannerUrl",
+  "backgroundId", "backgroundUrl", "musicUrl", "discord", "twitch"
+];
+
+export function saveProfile(
+  slug: string,
+  patch: Partial<ProfileRecord>,
+  editorId: string,
+  editorName: string
+): { ok: true; profile: ProfileRecord } | { ok: false; error: string } {
+  const db = read();
+  const existing = db.profiles[slug];
+  // Ownership: first editor claims the card; afterwards only they may edit it.
+  if (existing?.ownerId && existing.ownerId !== editorId) {
+    return { ok: false, error: "This profile belongs to someone else." };
+  }
+  const base = existing ?? defaultProfile(slug, editorName);
+  for (const key of EDITABLE_FIELDS) {
+    if (key in patch && patch[key] !== undefined) {
+      // @ts-expect-error indexed assignment across a union of string fields
+      base[key] = typeof patch[key] === "string" ? (patch[key] as string).slice(0, 600) : patch[key];
+    }
+  }
+  base.ownerId = existing?.ownerId ?? editorId;
+  base.updatedAt = Date.now();
+  db.profiles[slug] = base;
+  cache = db;
+  write();
+  return { ok: true, profile: base };
+}
+
+export function addProfileComment(
+  slug: string,
+  comment: Omit<ProfileComment, "id" | "ts">,
+  displayName?: string
+): { ok: true; comment: ProfileComment } | { ok: false; error: string } {
+  const text = comment.text.trim();
+  if (!text) return { ok: false, error: "Empty comment" };
+  const db = read();
+  const profile = db.profiles[slug] ?? defaultProfile(slug, displayName || slug);
+  const entry: ProfileComment = {
+    id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    authorId: comment.authorId,
+    authorName: comment.authorName,
+    authorAvatar: comment.authorAvatar,
+    text: text.slice(0, 500),
+    ts: Date.now()
+  };
+  profile.comments.push(entry);
+  db.profiles[slug] = profile;
+  cache = db;
+  write();
+  return { ok: true, comment: entry };
+}
+
+export function deleteProfileComment(slug: string, commentId: string, requesterId: string) {
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile) return { ok: false as const, error: "No profile" };
+  const c = profile.comments.find((x) => x.id === commentId);
+  if (!c) return { ok: false as const, error: "No comment" };
+  // Comment author or the profile owner may remove a comment.
+  if (c.authorId !== requesterId && profile.ownerId !== requesterId) {
+    return { ok: false as const, error: "Not allowed" };
+  }
+  profile.comments = profile.comments.filter((x) => x.id !== commentId);
+  cache = db;
+  write();
+  return { ok: true as const };
+}
+
+export function reportProfile(report: Omit<ProfileReport, "id" | "ts">) {
+  const db = read();
+  const entry: ProfileReport = {
+    ...report,
+    reason: report.reason.slice(0, 500),
+    id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    ts: Date.now()
+  };
+  db.profileReports.push(entry);
+  cache = db;
+  write();
+  return entry;
 }

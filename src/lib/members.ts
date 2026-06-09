@@ -47,17 +47,6 @@ export const TIERS: Tier[] = [
     ]
   },
   {
-    id: "legacy",
-    name: "Legacy Members",
-    emoji: "🍂",
-    color: "#F0A868",
-    blurb: "Old friends who've been here since the early brews.",
-    members: [
-      { name: "OnlyFun", presence: "online" },
-      { name: "YUZATH (LilySone)", tag: "PLAY", presence: "online" }
-    ]
-  },
-  {
     id: "inner",
     name: "Inner Members",
     emoji: "🌼",
@@ -74,14 +63,6 @@ export const TIERS: Tier[] = [
       { name: "xMarabou", presence: "online" },
       { name: "Zixuss", presence: "online" }
     ]
-  },
-  {
-    id: "ghosthunter",
-    name: "Ghosthunter",
-    emoji: "👻",
-    color: "#7FD0C0",
-    blurb: "Brave souls for the spooky game nights.",
-    members: [{ name: "sugatti", presence: "online", note: "Coral Island" }]
   },
   {
     id: "members",
@@ -113,4 +94,40 @@ export const PRESENCE_COLOR: Record<Presence, string> = {
 
 export function totalMembers(): number {
   return TIERS.reduce((sum, t) => sum + t.members.length, 0);
+}
+
+// Stable url-friendly id for a member name.
+export function memberSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[()]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+export type MemberWithTier = Member & {
+  slug: string;
+  tierId: string;
+  tierName: string;
+  tierColor: string;
+  tierEmoji: string;
+};
+
+// Flattened directory so any page/route can resolve a member by slug.
+export function allMembers(): MemberWithTier[] {
+  return TIERS.flatMap((t) =>
+    t.members.map((m) => ({
+      ...m,
+      slug: memberSlug(m.name),
+      tierId: t.id,
+      tierName: t.name,
+      tierColor: t.color,
+      tierEmoji: t.emoji
+    }))
+  );
+}
+
+export function findMemberBySlug(slug: string): MemberWithTier | undefined {
+  return allMembers().find((m) => m.slug === slug);
 }

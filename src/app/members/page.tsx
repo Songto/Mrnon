@@ -1,12 +1,23 @@
+import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { SectionHeading } from "@/components/ui/CozyCard";
-import { TIERS, PRESENCE_COLOR, totalMembers, type Member, type Tier } from "@/lib/members";
+import {
+  TIERS,
+  PRESENCE_COLOR,
+  totalMembers,
+  memberSlug,
+  type Member,
+  type Tier
+} from "@/lib/members";
 
 export const metadata = { title: "Members · OURCHAT Teaparty 🍓" };
 
 function MemberRow({ member, color }: { member: Member; color: string }) {
   return (
-    <li className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-surface/70">
+    <Link
+      href={`/members/${memberSlug(member.name)}`}
+      className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition hover:bg-surface/70"
+    >
       <div className="relative shrink-0">
         <Avatar name={member.name} size={38} />
         <span
@@ -33,7 +44,7 @@ function MemberRow({ member, color }: { member: Member; color: string }) {
           <span className="block truncate text-[11px] text-cocoa-soft">{member.note}</span>
         )}
       </div>
-    </li>
+    </Link>
   );
 }
 
@@ -57,11 +68,11 @@ function TierCard({ tier }: { tier: Tier }) {
         </span>
       </header>
       <p className="px-4 pt-3 text-xs text-cocoa-soft">{tier.blurb}</p>
-      <ul className="space-y-0.5 p-3">
+      <div className="space-y-0.5 p-3">
         {tier.members.map((m) => (
           <MemberRow key={m.name} member={m} color={tier.color} />
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

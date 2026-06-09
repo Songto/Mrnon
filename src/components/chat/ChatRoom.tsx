@@ -186,7 +186,7 @@ export function ChatRoom() {
                   </div>
                   <div
                     className={clsx(
-                      "inline-block rounded-2xl px-3.5 py-2 text-sm shadow-cozy",
+                      "inline-block max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm shadow-cozy [overflow-wrap:anywhere]",
                       mine ? "bg-strawberry text-night" : "bg-surface"
                     )}
                   >
