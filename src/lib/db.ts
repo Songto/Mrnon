@@ -76,11 +76,31 @@ export type ProfileRecord = {
   updatedAt: number;
 };
 
+// A short-lived "looking for a friend" feed post. One active post per person;
+// it disappears 90 minutes after it's made.
+export type FeedPost = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorSlug: string;
+  text: string;
+  game?: string;
+  vibe?: string;
+  accent: string;
+  waves: string[]; // userIds who waved 👋
+  createdAt: number;
+  expiresAt: number;
+};
+
+export const FEED_TTL_MS = 90 * 60 * 1000;
+
 type DBShape = {
   users: Record<string, UserRecord>;
   events: EventRecord[];
   profiles: Record<string, ProfileRecord>;
   profileReports: ProfileReport[];
+  feedPosts: FeedPost[];
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -138,7 +158,8 @@ function seed(): DBShape {
       }
     ],
     profiles: {},
-    profileReports: []
+    profileReports: [],
+    feedPosts: []
   };
 }
 
@@ -150,6 +171,7 @@ function loadFromDisk(): DBShape | null {
     if (!data.events) data.events = [];
     if (!data.profiles) data.profiles = {};
     if (!data.profileReports) data.profileReports = [];
+    if (!data.feedPosts) data.feedPosts = [];
     cachedMtime = stat.mtimeMs;
     return data;
   } catch {
@@ -497,4 +519,81 @@ export function reportProfile(report: Omit<ProfileReport, "id" | "ts">) {
   cache = db;
   write();
   return entry;
+}
+
+// ---- Friend Feed (90-minute "looking for a friend" posts) ----
+
+function pruneFeed(db: DBShape): boolean {
+  const now = Date.now();
+  const before = db.feedPosts.length;
+  db.feedPosts = db.feedPosts.filter((p) => p.expiresAt > now);
+  return db.feedPosts.length !== before;
+}
+
+export function listFeed(): FeedPost[] {
+  const db = read();
+  if (pruneFeed(db)) {
+    cache = db;
+    write();
+  }
+  return [...db.feedPosts].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function createFeedPost(input: {
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorSlug: string;
+  text: string;
+  game?: string;
+  vibe?: string;
+  accent?: string;
+}): { ok: true; post: FeedPost } | { ok: false; error: string } {
+  const text = input.text.trim();
+  if (!text) return { ok: false, error: "Say something about who you're looking for!" };
+  const db = read();
+  pruneFeed(db);
+  // One active post per person — a new post replaces the previous one.
+  db.feedPosts = db.feedPosts.filter((p) => p.authorId !== input.authorId);
+  const now = Date.now();
+  const post: FeedPost = {
+    id: `f-${now}-${Math.random().toString(36).slice(2, 6)}`,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    authorAvatar: input.authorAvatar,
+    authorSlug: input.authorSlug,
+    text: text.slice(0, 280),
+    game: input.game?.trim().slice(0, 60) || undefined,
+    vibe: input.vibe?.trim().slice(0, 40) || undefined,
+    accent: input.accent || "#FF5E7E",
+    waves: [],
+    createdAt: now,
+    expiresAt: now + FEED_TTL_MS
+  };
+  db.feedPosts.push(post);
+  cache = db;
+  write();
+  return { ok: true, post };
+}
+
+export function waveFeedPost(postId: string, userId: string) {
+  const db = read();
+  const post = db.feedPosts.find((p) => p.id === postId);
+  if (!post) return { ok: false as const, error: "Post expired" };
+  if (post.waves.includes(userId)) post.waves = post.waves.filter((w) => w !== userId);
+  else post.waves.push(userId);
+  cache = db;
+  write();
+  return { ok: true as const, waves: post.waves.length, waved: post.waves.includes(userId) };
+}
+
+export function deleteFeedPost(postId: string, userId: string) {
+  const db = read();
+  const post = db.feedPosts.find((p) => p.id === postId);
+  if (!post) return { ok: false as const, error: "No post" };
+  if (post.authorId !== userId) return { ok: false as const, error: "Not your post" };
+  db.feedPosts = db.feedPosts.filter((p) => p.id !== postId);
+  cache = db;
+  write();
+  return { ok: true as const };
 }

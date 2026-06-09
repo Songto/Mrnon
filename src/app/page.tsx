@@ -18,10 +18,10 @@ const FEATURES = [
     text: "From Householders to Inner Members — see everyone's place at the table and who's online."
   },
   {
-    href: "/events",
-    emoji: "🎀",
-    title: "Parties & badges",
-    text: "Host game nights, RSVP to tea parties, and collect cute sticker badges."
+    href: "/feed",
+    emoji: "🌷",
+    title: "Find a friend",
+    text: "Post a 90-minute card when you're looking for someone to play with, and wave at new friends."
   }
 ];
 

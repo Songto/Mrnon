@@ -13,8 +13,8 @@ const LINKS = [
   { href: "/", label: "Parlor", emoji: "🏡" },
   { href: "/tearoom", label: "Rooms", emoji: "💬" },
   { href: "/members", label: "Members", emoji: "🪪" },
+  { href: "/feed", label: "Feed", emoji: "🌷" },
   { href: "/garden", label: "Garden", emoji: "🌿" },
-  { href: "/events", label: "Events", emoji: "🎀" },
   { href: "/profile", label: "Me", emoji: "🍓" }
 ];
 
