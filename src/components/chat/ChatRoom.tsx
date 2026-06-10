@@ -164,7 +164,7 @@ export function ChatRoom() {
     <div
       className={clsx(
         "grid gap-4",
-        isPrivate ? "lg:grid-cols-[280px_minmax(0,1fr)_360px]" : "lg:grid-cols-[300px_1fr]"
+        isPrivate ? "lg:grid-cols-[260px_minmax(0,1fr)_420px]" : "lg:grid-cols-[300px_1fr]"
       )}
     >
       {/* Left: lobby + private rooms + table */}

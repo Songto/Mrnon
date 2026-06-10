@@ -184,7 +184,7 @@ export function GamePanel({
 
       <div
         className={clsx(
-          "mx-auto grid aspect-square w-full max-w-[330px] grid-cols-8 overflow-hidden rounded-lg",
+          "mx-auto grid aspect-square w-full max-w-[400px] grid-cols-8 overflow-hidden rounded-lg",
           game.type === "othello" && "gap-px bg-[#1f5c39] p-px"
         )}
       >

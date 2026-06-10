@@ -38,10 +38,13 @@ export function initialBoard(): Board {
   return b;
 }
 
-// Diagonal directions a piece may move/jump.
+const ALL_DIRS: [number, number][] = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+// Directions a piece may make a *simple* (non-capturing) move. Men move
+// forward only; kings move any diagonal.
 function dirs(p: NonNullable<Piece>): [number, number][] {
   const fwd = p.c === "r" ? -1 : 1; // red moves up, black moves down
-  if (p.k) return [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  if (p.k) return ALL_DIRS;
   return [[fwd, 1], [fwd, -1]];
 }
 
@@ -50,7 +53,8 @@ function jumpsFrom(board: Board, i: number): Move[] {
   if (!p) return [];
   const [r, c] = rc(i);
   const out: Move[] = [];
-  for (const [dr, dc] of dirs(p)) {
+  // Thai style: men may capture in all four diagonals (forward AND backward).
+  for (const [dr, dc] of ALL_DIRS) {
     if (p.k) {
       // Flying king: glide over empty squares to the first piece; if it's an
       // enemy with empty square(s) beyond, capture it and land anywhere past it.
