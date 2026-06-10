@@ -15,6 +15,7 @@ import {
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { PhotoStudio } from "./PhotoStudio";
+import { ImageUpload } from "./ImageUpload";
 
 type Form = {
   displayName: string;
@@ -190,7 +191,10 @@ export function ProfileEditor() {
               {BANNERS.map((b) => (
                 <button
                   key={b.id}
-                  onClick={() => set("bannerId", b.id)}
+                  onClick={() => {
+                    set("bannerId", b.id);
+                    set("bannerUrl", "");
+                  }}
                   title={b.label}
                   className={`h-9 w-14 rounded-lg ring-2 transition ${
                     form.bannerId === b.id ? "ring-strawberry" : "ring-transparent"
@@ -199,15 +203,40 @@ export function ProfileEditor() {
                 />
               ))}
             </div>
-            <Field
-              label=""
-              value={form.bannerUrl}
-              onChange={(v) => {
-                set("bannerUrl", v);
-                if (v) set("bannerId", "custom");
-              }}
-              placeholder="…or paste a custom banner image URL"
-            />
+            {form.bannerId === "custom" && form.bannerUrl ? (
+              <div className="mt-2 flex items-center justify-between rounded-full bg-sage/30 px-3 py-1.5 text-xs">
+                <span>✓ Using your custom banner</span>
+                <button
+                  onClick={() => {
+                    set("bannerUrl", "");
+                    set("bannerId", "berry");
+                  }}
+                  className="text-cocoa-soft hover:text-strawberry"
+                >
+                  remove
+                </button>
+              </div>
+            ) : (
+              <>
+                <Field
+                  label=""
+                  value={form.bannerUrl.startsWith("data:") ? "" : form.bannerUrl}
+                  onChange={(v) => {
+                    set("bannerUrl", v);
+                    if (v) set("bannerId", "custom");
+                  }}
+                  placeholder="…paste a banner image URL"
+                />
+                <ImageUpload
+                  shape="banner"
+                  defaultMax={1200}
+                  onChange={(d) => {
+                    set("bannerUrl", d);
+                    set("bannerId", "custom");
+                  }}
+                />
+              </>
+            )}
           </div>
 
           {/* Background */}
@@ -217,7 +246,10 @@ export function ProfileEditor() {
               {BACKGROUNDS.map((b) => (
                 <button
                   key={b.id}
-                  onClick={() => set("backgroundId", b.id)}
+                  onClick={() => {
+                    set("backgroundId", b.id);
+                    set("backgroundUrl", "");
+                  }}
                   title={b.label}
                   className={`h-9 w-14 rounded-lg ring-2 transition ${
                     form.backgroundId === b.id ? "ring-strawberry" : "ring-transparent"
@@ -226,15 +258,40 @@ export function ProfileEditor() {
                 />
               ))}
             </div>
-            <Field
-              label=""
-              value={form.backgroundUrl}
-              onChange={(v) => {
-                set("backgroundUrl", v);
-                if (v) set("backgroundId", "custom");
-              }}
-              placeholder="…or paste a custom background image URL"
-            />
+            {form.backgroundId === "custom" && form.backgroundUrl ? (
+              <div className="mt-2 flex items-center justify-between rounded-full bg-sage/30 px-3 py-1.5 text-xs">
+                <span>✓ Using your custom background</span>
+                <button
+                  onClick={() => {
+                    set("backgroundUrl", "");
+                    set("backgroundId", "plum");
+                  }}
+                  className="text-cocoa-soft hover:text-strawberry"
+                >
+                  remove
+                </button>
+              </div>
+            ) : (
+              <>
+                <Field
+                  label=""
+                  value={form.backgroundUrl.startsWith("data:") ? "" : form.backgroundUrl}
+                  onChange={(v) => {
+                    set("backgroundUrl", v);
+                    if (v) set("backgroundId", "custom");
+                  }}
+                  placeholder="…paste a background image URL"
+                />
+                <ImageUpload
+                  shape="background"
+                  defaultMax={1440}
+                  onChange={(d) => {
+                    set("backgroundUrl", d);
+                    set("backgroundId", "custom");
+                  }}
+                />
+              </>
+            )}
           </div>
 
           {/* Accent */}

@@ -1,29 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { approxKB, loadImageFromFile, resizeToDataUrl } from "@/lib/image";
 
 type ShowcaseStyle = "grid" | "full";
-
-function resizeToDataUrl(img: HTMLImageElement, maxSize: number, quality: number): string {
-  const ratio = Math.min(1, maxSize / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * ratio));
-  const h = Math.max(1, Math.round(img.naturalHeight * ratio));
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, 0, 0, w, h);
-  }
-  return canvas.toDataURL("image/jpeg", quality);
-}
-
-function approxKB(dataUrl: string): number {
-  // base64 payload is ~4/3 of the byte size
-  const base64 = dataUrl.split(",")[1] ?? "";
-  return Math.round((base64.length * 3) / 4 / 1024);
-}
 
 export function PhotoStudio({
   photos,
@@ -54,14 +34,8 @@ export function PhotoStudio({
   }, [pending, maxSize, quality]);
 
   const onPick = (file?: File) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => setPending(img);
-      img.src = String(reader.result);
-    };
-    reader.readAsDataURL(file);
+    if (!file) return;
+    loadImageFromFile(file).then(setPending).catch(() => {});
   };
 
   const addPhoto = () => {

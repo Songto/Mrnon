@@ -451,15 +451,20 @@ export function getProfile(slug: string, displayName?: string): ProfileRecord {
   return defaultProfile(slug, displayName || slug);
 }
 
-// Plain text/string fields that get length-capped on save.
+// Plain text/string fields that get length-capped to 600 chars on save.
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
-  "favoriteGames", "lookingFor", "vibe", "accent", "bannerId", "bannerUrl",
-  "backgroundId", "backgroundUrl", "musicUrl", "discord", "twitch"
+  "favoriteGames", "lookingFor", "vibe", "accent", "bannerId",
+  "backgroundId", "discord", "twitch"
 ];
+
+// URL / image fields that may hold long values (a pasted link OR an uploaded,
+// client-resized image data URL) — capped by size, never truncated to 600.
+const IMAGE_FIELDS: (keyof ProfileRecord)[] = ["bannerUrl", "backgroundUrl", "musicUrl"];
 
 const MAX_PHOTOS = 8;
 const MAX_PHOTO_BYTES = 600 * 1024; // ~600KB per (already client-resized) image
+const MAX_IMAGE_BYTES = 1200 * 1024; // banner/background may be a touch larger
 
 export function saveProfile(
   slug: string,
@@ -478,6 +483,16 @@ export function saveProfile(
     if (key in patch && patch[key] !== undefined) {
       // @ts-expect-error indexed assignment across a union of string fields
       base[key] = typeof patch[key] === "string" ? (patch[key] as string).slice(0, 600) : patch[key];
+    }
+  }
+  // Banner/background/music URLs: accept long values (data URLs), size-capped.
+  for (const key of IMAGE_FIELDS) {
+    if (key in patch) {
+      const val = patch[key];
+      if (typeof val === "string" && val.length <= MAX_IMAGE_BYTES) {
+        // @ts-expect-error indexed assignment across string fields
+        base[key] = val;
+      }
     }
   }
   // Photo showcase: keep only reasonably-sized images, capped in count.
