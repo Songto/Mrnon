@@ -10,7 +10,7 @@ export function ImageUpload({
   defaultMax = 1080,
   onChange
 }: {
-  shape: "banner" | "background";
+  shape: "banner" | "background" | "avatar";
   defaultMax?: number;
   onChange: (dataUrl: string) => void;
 }) {
@@ -39,7 +39,12 @@ export function ImageUpload({
     reset();
   };
 
-  const previewClass = shape === "banner" ? "h-16 w-full" : "h-24 w-full";
+  const previewClass =
+    shape === "banner"
+      ? "h-16 w-full"
+      : shape === "avatar"
+        ? "mx-auto h-24 w-24 rounded-full"
+        : "h-24 w-full";
 
   return (
     <div className="mt-2">
@@ -49,7 +54,9 @@ export function ImageUpload({
           <img
             src={preview}
             alt="preview"
-            className={`${previewClass} rounded-xl object-cover ring-2 ring-strawberry/40`}
+            className={`${previewClass} object-cover ring-2 ring-strawberry/40 ${
+              shape === "avatar" ? "" : "rounded-xl"
+            }`}
           />
           <p className="mt-1 text-center text-[10px] text-cocoa-soft">
             {resizedDims(pending, maxSize)} · ~{approxKB(preview)}KB

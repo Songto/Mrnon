@@ -31,6 +31,7 @@ type Form = {
   twitch: string;
   musicUrl: string;
   accent: string;
+  avatarUrl: string;
   bannerId: string;
   bannerUrl: string;
   backgroundId: string;
@@ -53,6 +54,7 @@ const EMPTY: Form = {
   twitch: "",
   musicUrl: "",
   accent: ACCENTS[0],
+  avatarUrl: "",
   bannerId: "berry",
   bannerUrl: "",
   backgroundId: "plum",
@@ -167,7 +169,7 @@ export function ProfileEditor() {
           style={{ background: backgroundCss(form.backgroundId, form.backgroundUrl) }}
         >
           <div className="-mt-8 rounded-full ring-4" style={{ ["--tw-ring-color" as string]: form.accent }}>
-            <Avatar name={form.displayName || identity.name} size={64} />
+            <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={64} />
           </div>
           <div className="pb-1">
             <p className="font-display text-lg text-cocoa">{form.displayName || identity.name}</p>
@@ -184,6 +186,28 @@ export function ProfileEditor() {
         <p className="text-sm text-cocoa-soft">Loading your card…</p>
       ) : (
         <div className="space-y-5">
+          {/* Profile photo */}
+          <div>
+            <p className="mb-2 text-xs font-display text-cocoa-soft">Profile photo 📷</p>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full ring-2" style={{ ["--tw-ring-color" as string]: form.accent }}>
+                <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={56} />
+              </div>
+              <div className="flex-1">
+                {form.avatarUrl ? (
+                  <button
+                    onClick={() => set("avatarUrl", "")}
+                    className="rounded-full bg-cocoa/5 px-3 py-1.5 text-xs text-cocoa-soft hover:text-strawberry"
+                  >
+                    Remove photo
+                  </button>
+                ) : (
+                  <ImageUpload shape="avatar" defaultMax={480} onChange={(d) => set("avatarUrl", d)} />
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Banner */}
           <div>
             <p className="mb-2 text-xs font-display text-cocoa-soft">Banner</p>

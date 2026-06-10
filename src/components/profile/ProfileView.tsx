@@ -33,6 +33,7 @@ type Profile = {
   lookingFor?: string;
   vibe?: string;
   accent: string;
+  avatarUrl?: string;
   bannerId: string;
   bannerUrl?: string;
   backgroundId: string;
@@ -178,7 +179,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-3">
               <div className="flex items-end gap-3">
                 <div className="rounded-full ring-4" style={{ ["--tw-ring-color" as string]: accent }}>
-                  <Avatar name={fallback.displayName} size={88} />
+                  <Avatar name={fallback.displayName} src={profile?.avatarUrl} size={88} />
                 </div>
                 <div className="pb-1">
                   <h1 className="flex items-center gap-2 text-2xl">
@@ -238,38 +239,78 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           <PhotoShowcase photos={profile.photos} style={profile.showcaseStyle || "grid"} />
         )}
 
-        {/* Basic info card (social/find-a-friend) */}
+        {/* Basic info card (social/find-a-friend) — cute avatar + accent backdrop */}
         {(filledInfo.length > 0 || profile?.discord || profile?.twitch || isOwner) && (
-          <div className="cozy-card p-5">
-            <h2 className="mb-3 text-lg">Basic info 🪪</h2>
-            {filledInfo.length === 0 && !profile?.discord && !profile?.twitch ? (
-              <p className="text-sm text-cocoa-soft">
-                Nothing here yet{isOwner ? " — add your details so people can find a friend in you!" : "."}
-              </p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {filledInfo.map((f) => (
-                  <div key={f.key} className="rounded-2xl bg-surface/60 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-wide text-cocoa-soft">
-                      {f.icon} {f.label}
-                    </p>
-                    <p className="break-words text-sm [overflow-wrap:anywhere]">{profile?.[f.key] as string}</p>
-                  </div>
-                ))}
-                {profile?.discord && (
-                  <div className="rounded-2xl bg-surface/60 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-wide text-cocoa-soft">💬 Discord</p>
-                    <p className="break-words text-sm [overflow-wrap:anywhere]">{profile.discord}</p>
-                  </div>
-                )}
-                {profile?.twitch && (
-                  <div className="rounded-2xl bg-surface/60 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-wide text-cocoa-soft">🟣 Twitch</p>
-                    <p className="break-words text-sm [overflow-wrap:anywhere]">{profile.twitch}</p>
-                  </div>
-                )}
+          <div className="cozy-card overflow-hidden p-0">
+            {/* decorative accent backdrop */}
+            <div
+              className="relative h-20"
+              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}66 70%, #FFFFFF22)` }}
+            >
+              <div
+                className="absolute inset-0 opacity-40"
+                style={{ background: "radial-gradient(circle at 88% -30%, #fff, transparent 55%)" }}
+              />
+              <span className="absolute right-4 top-3 text-2xl drop-shadow-sm">🌸</span>
+            </div>
+
+            <div className="px-5 pb-5">
+              <div className="-mt-11 flex items-end gap-3">
+                <div className="rounded-full ring-4 ring-surface" style={{ ["--tw-ring-color" as string]: "#fff" }}>
+                  <Avatar name={fallback.displayName} src={profile?.avatarUrl} size={76} />
+                </div>
+                <div className="pb-1">
+                  <h2 className="text-lg leading-tight">
+                    {profile?.displayName || fallback.displayName}&apos;s info 🪪
+                  </h2>
+                  <span className="text-xs" style={{ color: accent }}>
+                    {fallback.tierEmoji} {fallback.tierName}
+                  </span>
+                </div>
               </div>
-            )}
+
+              {filledInfo.length === 0 && !profile?.discord && !profile?.twitch ? (
+                <p className="mt-3 text-sm text-cocoa-soft">
+                  Nothing here yet{isOwner ? " — add your details so people can find a friend in you! 🌷" : "."}
+                </p>
+              ) : (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {filledInfo.map((f) => (
+                    <span
+                      key={f.key}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
+                      style={{ background: `${accent}1f` }}
+                    >
+                      <span>{f.icon}</span>
+                      <span className="text-cocoa-soft">{f.label}:</span>
+                      <span className="break-words font-display [overflow-wrap:anywhere]">
+                        {profile?.[f.key] as string}
+                      </span>
+                    </span>
+                  ))}
+                  {profile?.discord && (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
+                      style={{ background: `${accent}1f` }}
+                    >
+                      <span>💬</span>
+                      <span className="text-cocoa-soft">Discord:</span>
+                      <span className="break-words font-display [overflow-wrap:anywhere]">{profile.discord}</span>
+                    </span>
+                  )}
+                  {profile?.twitch && (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
+                      style={{ background: `${accent}1f` }}
+                    >
+                      <span>🟣</span>
+                      <span className="text-cocoa-soft">Twitch:</span>
+                      <span className="break-words font-display [overflow-wrap:anywhere]">{profile.twitch}</span>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

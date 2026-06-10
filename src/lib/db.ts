@@ -65,6 +65,7 @@ export type ProfileRecord = {
   lookingFor?: string;
   vibe?: string;
   accent: string;
+  avatarUrl?: string;
   bannerId: string;
   bannerUrl?: string;
   backgroundId: string;
@@ -460,7 +461,7 @@ const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
 
 // URL / image fields that may hold long values (a pasted link OR an uploaded,
 // client-resized image data URL) — capped by size, never truncated to 600.
-const IMAGE_FIELDS: (keyof ProfileRecord)[] = ["bannerUrl", "backgroundUrl", "musicUrl"];
+const IMAGE_FIELDS: (keyof ProfileRecord)[] = ["avatarUrl", "bannerUrl", "backgroundUrl", "musicUrl"];
 
 const MAX_PHOTOS = 8;
 const MAX_PHOTO_BYTES = 600 * 1024; // ~600KB per (already client-resized) image
