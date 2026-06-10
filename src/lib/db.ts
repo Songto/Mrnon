@@ -72,6 +72,8 @@ export type ProfileRecord = {
   musicUrl?: string;
   discord?: string;
   twitch?: string;
+  photos?: string[]; // showcase images (client-resized data URLs)
+  showcaseStyle?: "grid" | "full";
   comments: ProfileComment[];
   updatedAt: number;
 };
@@ -449,11 +451,15 @@ export function getProfile(slug: string, displayName?: string): ProfileRecord {
   return defaultProfile(slug, displayName || slug);
 }
 
+// Plain text/string fields that get length-capped on save.
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
   "favoriteGames", "lookingFor", "vibe", "accent", "bannerId", "bannerUrl",
   "backgroundId", "backgroundUrl", "musicUrl", "discord", "twitch"
 ];
+
+const MAX_PHOTOS = 8;
+const MAX_PHOTO_BYTES = 600 * 1024; // ~600KB per (already client-resized) image
 
 export function saveProfile(
   slug: string,
@@ -473,6 +479,15 @@ export function saveProfile(
       // @ts-expect-error indexed assignment across a union of string fields
       base[key] = typeof patch[key] === "string" ? (patch[key] as string).slice(0, 600) : patch[key];
     }
+  }
+  // Photo showcase: keep only reasonably-sized images, capped in count.
+  if (Array.isArray(patch.photos)) {
+    base.photos = patch.photos
+      .filter((p) => typeof p === "string" && p.length <= MAX_PHOTO_BYTES)
+      .slice(0, MAX_PHOTOS);
+  }
+  if (patch.showcaseStyle === "grid" || patch.showcaseStyle === "full") {
+    base.showcaseStyle = patch.showcaseStyle;
   }
   base.ownerId = existing?.ownerId ?? editorId;
   base.updatedAt = Date.now();

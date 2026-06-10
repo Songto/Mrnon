@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 import { ProfileMusic } from "./ProfileMusic";
+import { PhotoShowcase } from "./PhotoShowcase";
 
 type Comment = {
   id: string;
@@ -39,6 +40,8 @@ type Profile = {
   musicUrl?: string;
   discord?: string;
   twitch?: string;
+  photos?: string[];
+  showcaseStyle?: "grid" | "full";
   comments: Comment[];
 };
 
@@ -229,6 +232,11 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
             )}
           </div>
         </div>
+
+        {/* Photo showcase */}
+        {profile?.photos && profile.photos.length > 0 && (
+          <PhotoShowcase photos={profile.photos} style={profile.showcaseStyle || "grid"} />
+        )}
 
         {/* Basic info card (social/find-a-friend) */}
         {(filledInfo.length > 0 || profile?.discord || profile?.twitch || isOwner) && (

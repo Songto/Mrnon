@@ -14,6 +14,7 @@ import {
 } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
+import { PhotoStudio } from "./PhotoStudio";
 
 type Form = {
   displayName: string;
@@ -33,6 +34,8 @@ type Form = {
   bannerUrl: string;
   backgroundId: string;
   backgroundUrl: string;
+  photos: string[];
+  showcaseStyle: "grid" | "full";
 };
 
 const EMPTY: Form = {
@@ -52,7 +55,9 @@ const EMPTY: Form = {
   bannerId: "berry",
   bannerUrl: "",
   backgroundId: "plum",
-  backgroundUrl: ""
+  backgroundUrl: "",
+  photos: [],
+  showcaseStyle: "grid"
 };
 
 function Field({
@@ -269,6 +274,16 @@ export function ProfileEditor() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Photo showcase */}
+          <div className="border-t border-cocoa/10 pt-4">
+            <PhotoStudio
+              photos={form.photos}
+              style={form.showcaseStyle}
+              onPhotosChange={(photos) => set("photos", photos)}
+              onStyleChange={(s) => set("showcaseStyle", s)}
+            />
           </div>
 
           {/* Basic info */}
