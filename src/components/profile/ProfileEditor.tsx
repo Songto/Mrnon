@@ -107,13 +107,15 @@ function Field({
   value,
   onChange,
   placeholder,
-  hint
+  hint,
+  maxLength = 80
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   hint?: string;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -122,6 +124,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="w-full rounded-2xl border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
       />
       {hint && <span className="mt-1 block text-[11px] text-cocoa-soft">{hint}</span>}
@@ -339,6 +342,7 @@ export function ProfileEditor() {
                     if (v) set("bannerId", "custom");
                   }}
                   placeholder="…paste a banner image URL"
+                  maxLength={2048}
                 />
                 <ImageUpload
                   shape="banner"
@@ -406,6 +410,7 @@ export function ProfileEditor() {
                     if (v) set("backgroundId", "custom");
                   }}
                   placeholder="…paste a background image URL"
+                  maxLength={2048}
                 />
                 <ImageUpload
                   shape="background"
@@ -444,6 +449,7 @@ export function ProfileEditor() {
               onChange={(v) => set("musicUrl", v)}
               placeholder="YouTube link or direct .mp3 URL"
               hint="Plays when someone opens your profile."
+              maxLength={400}
             />
             <div className="mt-2 flex flex-wrap gap-2">
               {MUSIC_SUGGESTIONS.map((m) => (
@@ -468,14 +474,14 @@ export function ProfileEditor() {
 
           {/* Basic info */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Display name" value={form.displayName} onChange={(v) => set("displayName", v)} />
-            <Field label="Tagline" value={form.tagline} onChange={(v) => set("tagline", v)} placeholder="A short headline" />
-            <Field label="Pronouns" value={form.pronouns} onChange={(v) => set("pronouns", v)} placeholder="she/her, they/them…" />
-            <Field label="Region" value={form.region} onChange={(v) => set("region", v)} placeholder="SEA, EU, NA…" />
-            <Field label="Age" value={form.ageRange} onChange={(v) => set("ageRange", v)} placeholder="e.g. 20s" />
-            <Field label="Vibe" value={form.vibe} onChange={(v) => set("vibe", v)} placeholder="chill / chaotic / sweet" />
-            <Field label="Games you play" value={form.favoriteGames} onChange={(v) => set("favoriteGames", v)} placeholder="Valorant, Stardew…" />
-            <Field label="Looking for" value={form.lookingFor} onChange={(v) => set("lookingFor", v)} placeholder="duo partners, chill friends…" />
+            <Field label="Display name" value={form.displayName} onChange={(v) => set("displayName", v)} maxLength={32} hint="This is the name shown across the site." />
+            <Field label="Tagline" value={form.tagline} onChange={(v) => set("tagline", v)} placeholder="A short headline" maxLength={80} />
+            <Field label="Pronouns" value={form.pronouns} onChange={(v) => set("pronouns", v)} placeholder="she/her, they/them…" maxLength={24} />
+            <Field label="Region" value={form.region} onChange={(v) => set("region", v)} placeholder="SEA, EU, NA…" maxLength={24} />
+            <Field label="Age" value={form.ageRange} onChange={(v) => set("ageRange", v)} placeholder="e.g. 20s" maxLength={12} />
+            <Field label="Vibe" value={form.vibe} onChange={(v) => set("vibe", v)} placeholder="chill / chaotic / sweet" maxLength={24} />
+            <Field label="Games you play" value={form.favoriteGames} onChange={(v) => set("favoriteGames", v)} placeholder="Valorant, Stardew…" maxLength={120} />
+            <Field label="Looking for" value={form.lookingFor} onChange={(v) => set("lookingFor", v)} placeholder="duo partners, chill friends…" maxLength={120} />
             <Field label="Discord" value={form.discord} onChange={(v) => set("discord", v)} placeholder="yourname" />
             <Field label="Twitch" value={form.twitch} onChange={(v) => set("twitch", v)} placeholder="yourchannel" />
           </div>
