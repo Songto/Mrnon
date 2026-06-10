@@ -13,6 +13,7 @@ import {
   questDone,
   type UserStats
 } from "./badges";
+import { SEEDS, rollSeed, seedById } from "./seeds";
 
 export type UserRecord = {
   id: string;
@@ -99,6 +100,8 @@ export type ProfileRecord = {
   showcases?: Showcase[]; // Steam-style reorderable, named showcase blocks
   likes?: string[]; // userIds who liked this profile (Famous badge)
   grantedBadges?: string[]; // admin-granted badges ("secret", "cutefactor")
+  seeds?: string[]; // unique seed ids collected from the gacha
+  lastRollDay?: string; // YYYY-MM-DD of the last gacha roll
   comments: ProfileComment[];
   updatedAt: number;
 };
@@ -493,6 +496,7 @@ export function questBoardFor(userId: string) {
       };
   const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
   const likes = profile?.likes?.length ?? 0;
+  const seeds = profile?.seeds?.length ?? 0;
   const granted = new Set(profile?.grantedBadges ?? []);
 
   const quests = QUESTS.map((q) => ({
@@ -509,8 +513,8 @@ export function questBoardFor(userId: string) {
     let earned = false;
     if (b.id === "ourchat") earned = allQuestsDone(stats);
     else if (b.id === "famous") earned = likes >= FAMOUS_LIKES;
+    else if (b.id === "gardener") earned = seeds >= SEEDS.length;
     else if (b.granted) earned = granted.has(b.id);
-    // locked badges (gardener) stay unearned until their feature ships
     return {
       id: b.id,
       name: b.name,
@@ -518,11 +522,11 @@ export function questBoardFor(userId: string) {
       description: b.description,
       granted: !!b.granted,
       locked: !!b.locked,
-      earned: b.locked ? false : earned
+      earned
     };
   });
 
-  return { quests, advanced, likes };
+  return { quests, advanced, likes, seeds };
 }
 
 // Advanced badges earned by the member who owns `slug` (shown on the public
@@ -968,6 +972,52 @@ export function isAdminUser(userId: string, adminSlugs: string[]): boolean {
   const db = read();
   const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
   return !!profile && adminSlugs.includes(profile.slug);
+}
+
+// ---- Seed gacha (one roll per member per day) ----
+
+function profileOf(userId: string): ProfileRecord | undefined {
+  return Object.values(read().profiles).find((p) => p.ownerId === userId);
+}
+
+export function seedStateFor(userId: string) {
+  const profile = profileOf(userId);
+  const today = todayISO();
+  return {
+    seeds: profile?.seeds ?? [],
+    canRoll: !!profile && profile.lastRollDay !== today,
+    registered: !!profile
+  };
+}
+
+export function rollDailySeed(userId: string) {
+  const db = read();
+  const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
+  if (!profile) {
+    return { ok: false as const, error: "Set up your profile first to plant seeds! 🌷" };
+  }
+  const today = todayISO();
+  if (profile.lastRollDay === today) {
+    return { ok: false as const, error: "You already rolled today — come back tomorrow 🌙" };
+  }
+  const seed = rollSeed();
+  const had = (profile.seeds ?? []).includes(seed.id);
+  if (!had) profile.seeds = [...(profile.seeds ?? []), seed.id];
+  profile.lastRollDay = today;
+  cache = db;
+  write();
+  return {
+    ok: true as const,
+    seed: { id: seed.id, name: seed.name, emoji: seed.emoji, rarity: seed.rarity, blurb: seed.blurb },
+    duplicate: had,
+    seeds: profile.seeds ?? [],
+    complete: (profile.seeds ?? []).length >= SEEDS.length
+  };
+}
+
+// Used by tests/tools to validate a stored seed id.
+export function isSeedId(id: string): boolean {
+  return !!seedById(id);
 }
 
 const GRANTABLE = ["secret", "cutefactor"];

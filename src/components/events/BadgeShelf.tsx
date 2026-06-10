@@ -33,6 +33,7 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
   const [quests, setQuests] = useState<Quest[]>([]);
   const [advanced, setAdvanced] = useState<Advanced[]>([]);
   const [likes, setLikes] = useState(0);
+  const [seedCount, setSeedCount] = useState(0);
 
   useEffect(() => {
     if (!identity) return;
@@ -42,6 +43,7 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
         setQuests(d.quests || []);
         setAdvanced(d.advanced || []);
         setLikes(d.likes || 0);
+        setSeedCount(d.seeds || 0);
       })
       .catch(() => {});
   }, [identity]);
@@ -79,7 +81,9 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
                     ? "Granted by the hosts"
                     : b.id === "famous"
                       ? `${likes}/500 likes`
-                      : `${done}/9 quests`}
+                      : b.id === "gardener"
+                        ? `${seedCount}/10 seeds`
+                        : `${done}/9 quests`}
               </p>
             </div>
           ))}

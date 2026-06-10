@@ -129,8 +129,7 @@ export const ADVANCED_BADGES: AdvancedBadgeDef[] = [
     id: "gardener",
     name: "Gardener",
     emoji: "🌱",
-    description: "Collected every seed in the garden. (Coming with the seed gacha!)",
-    locked: true
+    description: "Collected all 10 seeds from the garden gacha."
   },
   {
     id: "cutefactor",
