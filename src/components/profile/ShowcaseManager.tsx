@@ -27,10 +27,15 @@ export function ShowcaseManager({
   showcases: Showcase[];
   onChange: (s: Showcase[]) => void;
 }) {
+  const MAX = 3;
+  const full = showcases.length >= MAX;
   const update = (id: string, patch: Partial<Showcase>) =>
     onChange(showcases.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const remove = (id: string) => onChange(showcases.filter((s) => s.id !== id));
-  const add = (type: Showcase["type"]) => onChange([...showcases, newShowcase(type)]);
+  const add = (type: Showcase["type"]) => {
+    if (full) return;
+    onChange([...showcases, newShowcase(type)]);
+  };
   const move = (i: number, dir: -1 | 1) => {
     const j = i + dir;
     if (j < 0 || j >= showcases.length) return;
@@ -42,7 +47,7 @@ export function ShowcaseManager({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-display text-cocoa-soft">Showcases ({showcases.length})</p>
+        <p className="text-xs font-display text-cocoa-soft">Showcases ({showcases.length}/{MAX})</p>
       </div>
 
       <div className="space-y-3">
@@ -171,19 +176,25 @@ export function ShowcaseManager({
       </div>
 
       {/* add buttons */}
-      <div className="mt-3 flex flex-wrap gap-2">
-        {(Object.keys(TYPE_META) as Showcase["type"][]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => add(t)}
-            className="rounded-full border border-dashed border-cocoa/20 px-3 py-1.5 text-xs text-cocoa-soft transition hover:border-strawberry hover:text-cocoa"
-            title={TYPE_META[t].hint}
-          >
-            + {TYPE_META[t].emoji} {TYPE_META[t].label}
-          </button>
-        ))}
-      </div>
+      {full ? (
+        <p className="mt-3 text-center text-[11px] text-cocoa-soft">
+          You&apos;ve added the max of {MAX} showcases — remove one to swap it out.
+        </p>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(Object.keys(TYPE_META) as Showcase["type"][]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => add(t)}
+              className="rounded-full border border-dashed border-cocoa/20 px-3 py-1.5 text-xs text-cocoa-soft transition hover:border-strawberry hover:text-cocoa"
+              title={TYPE_META[t].hint}
+            >
+              + {TYPE_META[t].emoji} {TYPE_META[t].label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

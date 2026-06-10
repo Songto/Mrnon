@@ -255,17 +255,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           </div>
         </div>
 
-        {/* Showcases (Steam-style: About / Screenshots / Featured) */}
-        {profile?.showcases && profile.showcases.length > 0 ? (
-          <ShowcaseList showcases={profile.showcases} accent={accent} />
-        ) : (
-          profile?.photos &&
-          profile.photos.length > 0 && (
-            <PhotoShowcase photos={profile.photos} style={profile.showcaseStyle || "grid"} />
-          )
-        )}
-
-        {/* Info panel — clean, Discord-style (uppercase labels, accent bar) */}
+        {/* Info panel — clean, Discord-style (uppercase labels, accent bar) — sits right under the banner */}
         {(filledInfo.length > 0 || profile?.discord || profile?.twitch || isOwner) && (
           <div className="cozy-card overflow-hidden p-0">
             <div className="h-1.5 w-full" style={{ background: accent }} />
@@ -309,6 +299,16 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               )}
             </div>
           </div>
+        )}
+
+        {/* Showcases (Steam-style: About / Screenshots / Featured) */}
+        {profile?.showcases && profile.showcases.length > 0 ? (
+          <ShowcaseList showcases={profile.showcases} accent={accent} />
+        ) : (
+          profile?.photos &&
+          profile.photos.length > 0 && (
+            <PhotoShowcase photos={profile.photos} style={profile.showcaseStyle || "grid"} />
+          )
         )}
 
         {/* Comment wall */}

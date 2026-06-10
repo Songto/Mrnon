@@ -481,7 +481,7 @@ const IMAGE_FIELDS: (keyof ProfileRecord)[] = ["avatarUrl", "bannerUrl", "backgr
 
 const MAX_PHOTOS = 8;
 const MAX_PHOTO_BYTES = 1100 * 1024; // ~1.1MB per image (covers small GIFs)
-const MAX_SHOWCASES = 8;
+const MAX_SHOWCASES = 3;
 const MAX_SHOWCASE_IMAGES = 12;
 const MAX_IMAGE_BYTES = 1200 * 1024; // banner/background may be a touch larger
 
