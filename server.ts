@@ -3,6 +3,15 @@ import { parse } from "node:url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
 import { recordActivity } from "./src/lib/db";
+import {
+  initialBoard,
+  legalMoves,
+  applyMove,
+  winnerIfOver,
+  other as otherColor,
+  type Board,
+  type Color
+} from "./src/lib/checkers";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || "localhost";
@@ -36,8 +45,33 @@ const LOBBY = "lobby";
 const roster = new Map<string, Map<string, Seat>>(); // room -> socketId -> seat
 const history = new Map<string, ChatMessage[]>(); // room -> messages
 
+// ---- Mini-game (checkers) state, one game per private room ----
+type Game = {
+  type: "checkers";
+  board: Board;
+  turn: Color;
+  players: { r: string; b: string }; // userId per colour
+  names: { r: string; b: string };
+  mustFrom: number | null; // mid multi-jump
+  winner: Color | null;
+};
+const games = new Map<string, Game>(); // room -> game
+
 function seatsOf(room: string): Seat[] {
   return Array.from(roster.get(room)?.values() ?? []);
+}
+
+// Distinct human players in a room (by userId), in seat order.
+function playersOf(room: string): Seat[] {
+  const seen = new Set<string>();
+  const out: Seat[] = [];
+  for (const seat of seatsOf(room)) {
+    if (!seen.has(seat.userId)) {
+      seen.add(seat.userId);
+      out.push(seat);
+    }
+  }
+  return out;
 }
 
 // When a room empties out, tidy up. Private rooms (anything other than the
@@ -47,7 +81,10 @@ function cleanupIfEmpty(room: string) {
   const seats = roster.get(room);
   if (seats && seats.size === 0) {
     roster.delete(room);
-    if (room !== LOBBY) history.delete(room);
+    if (room !== LOBBY) {
+      history.delete(room);
+      games.delete(room);
+    }
   }
 }
 
@@ -74,6 +111,17 @@ app.prepare().then(() => {
     cors: { origin: "*" }
   });
 
+  // End a room's game if one of its two players has left.
+  function endGameIfPlayerGone(room: string) {
+    const g = games.get(room);
+    if (!g) return;
+    const ids = new Set(playersOf(room).map((p) => p.userId));
+    if (!ids.has(g.players.r) || !ids.has(g.players.b)) {
+      games.delete(room);
+      io.to(room).emit("game:state", null);
+    }
+  }
+
   io.on("connection", (socket) => {
     let current: { room: string; seat: Seat } | null = null;
 
@@ -95,6 +143,7 @@ app.prepare().then(() => {
           prev?.delete(socket.id);
           socket.leave(current.room);
           io.to(current.room).emit("seats", seatsOf(current.room));
+          endGameIfPlayerGone(current.room);
           cleanupIfEmpty(current.room);
         }
 
@@ -106,9 +155,67 @@ app.prepare().then(() => {
 
         socket.emit("history", history.get(room) ?? []);
         io.to(room).emit("seats", seatsOf(room));
+        // Bring a joining player up to speed on any ongoing game.
+        if (games.has(room)) socket.emit("game:state", games.get(room));
         broadcastLounge();
       }
     );
+
+    // ---- Mini-game: Checkers ----
+    socket.on("game:start", () => {
+      if (!current || current.room === LOBBY) return;
+      const players = playersOf(current.room);
+      if (players.length < 2) {
+        socket.emit("game:error", "Need two people in the room to play.");
+        return;
+      }
+      // Starter plays red (moves first); the other distinct player is black.
+      const me = current.seat;
+      const opp = players.find((p) => p.userId !== me.userId)!;
+      const game: Game = {
+        type: "checkers",
+        board: initialBoard(),
+        turn: "r",
+        players: { r: me.userId, b: opp.userId },
+        names: { r: me.name, b: opp.name },
+        mustFrom: null,
+        winner: null
+      };
+      games.set(current.room, game);
+      io.to(current.room).emit("game:state", game);
+    });
+
+    socket.on("game:move", (payload: { from: number; to: number }) => {
+      if (!current) return;
+      const game = games.get(current.room);
+      if (!game || game.winner) return;
+      const userId = current.seat.userId;
+      const myColor: Color | null =
+        game.players.r === userId ? "r" : game.players.b === userId ? "b" : null;
+      if (!myColor || myColor !== game.turn) return; // not your turn / spectator
+
+      const legal = legalMoves(game.board, myColor, game.mustFrom);
+      const move = legal.find((m) => m.from === payload.from && m.to === payload.to);
+      if (!move) return;
+
+      const res = applyMove(game.board, move);
+      if (!res) return;
+      game.board = res.board;
+      if (res.continueFrom != null) {
+        game.mustFrom = res.continueFrom; // same player keeps jumping
+      } else {
+        game.mustFrom = null;
+        game.turn = otherColor(myColor);
+        game.winner = winnerIfOver(game.board, game.turn);
+      }
+      io.to(current.room).emit("game:state", game);
+    });
+
+    socket.on("game:end", () => {
+      if (!current) return;
+      games.delete(current.room);
+      io.to(current.room).emit("game:state", null);
+    });
 
     socket.on("message", (payload: { text: string }) => {
       if (!current) return;
@@ -157,6 +264,7 @@ app.prepare().then(() => {
       const room = roster.get(current.room);
       room?.delete(socket.id);
       io.to(current.room).emit("seats", seatsOf(current.room));
+      endGameIfPlayerGone(current.room);
       cleanupIfEmpty(current.room);
       broadcastLounge();
       current = null;

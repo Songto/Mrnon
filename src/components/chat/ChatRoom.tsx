@@ -10,6 +10,7 @@ import { Avatar } from "../ui/Avatar";
 import { CozyButton } from "../ui/CozyButton";
 import { IdentityModal } from "../ui/IdentityModal";
 import { TeaTable, type Seat } from "./TeaTable";
+import { GamePanel } from "./GamePanel";
 
 type Message = {
   id: string;
@@ -238,6 +239,15 @@ export function ChatRoom() {
         <div className={clsx("cozy-card p-4", roomAccent)}>
           <TeaTable seats={seats} meId={identity?.userId} />
         </div>
+
+        {/* Mini-game lives in private rooms */}
+        {isPrivate && (
+          <GamePanel
+            socket={socket}
+            userId={identity?.userId}
+            playerCount={new Set(seats.map((s) => s.userId)).size}
+          />
+        )}
       </aside>
 
       {/* Right: messages + composer */}
