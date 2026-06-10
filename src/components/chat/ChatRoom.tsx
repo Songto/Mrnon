@@ -161,7 +161,12 @@ export function ChatRoom() {
   const typingNames = Object.values(typers).filter((n) => n !== identity?.name);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+    <div
+      className={clsx(
+        "grid gap-4",
+        isPrivate ? "lg:grid-cols-[280px_minmax(0,1fr)_360px]" : "lg:grid-cols-[300px_1fr]"
+      )}
+    >
       {/* Left: lobby + private rooms + table */}
       <aside className="space-y-4">
         <div className="cozy-card p-3">
@@ -239,15 +244,6 @@ export function ChatRoom() {
         <div className={clsx("cozy-card p-4", roomAccent)}>
           <TeaTable seats={seats} meId={identity?.userId} />
         </div>
-
-        {/* Mini-game lives in private rooms */}
-        {isPrivate && (
-          <GamePanel
-            socket={socket}
-            userId={identity?.userId}
-            playerCount={new Set(seats.map((s) => s.userId)).size}
-          />
-        )}
       </aside>
 
       {/* Right: messages + composer */}
@@ -338,6 +334,17 @@ export function ChatRoom() {
           </CozyButton>
         </div>
       </section>
+
+      {/* Right: mini-game (private rooms only) */}
+      {isPrivate && (
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <GamePanel
+            socket={socket}
+            userId={identity?.userId}
+            playerCount={new Set(seats.map((s) => s.userId)).size}
+          />
+        </aside>
+      )}
     </div>
   );
 }
