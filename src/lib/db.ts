@@ -4,7 +4,15 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { BADGES, evaluateBadges, type UserStats } from "./badges";
+import {
+  QUESTS,
+  ADVANCED_BADGES,
+  FAMOUS_LIKES,
+  allQuestsDone,
+  evaluateBadges,
+  questDone,
+  type UserStats
+} from "./badges";
 
 export type UserRecord = {
   id: string;
@@ -18,6 +26,9 @@ export type UserRecord = {
   wateredOthers: number;
   waterReceived: number;
   badges: string[];
+  feedPosts?: number; // friend-feed cards posted
+  gamesFinished?: number; // mini-games played to the end
+  profileSaves?: number; // profile customizations saved
   createdAt: number;
   lastSeen: number;
 };
@@ -66,7 +77,7 @@ export type ProfileRecord = {
   vibe?: string;
   cardBlurb?: string; // short status shown on the member mini-card
   motto?: string; // the member's motto, shown in the card's motto box
-  role?: "admin" | "moderator" | "member";
+  role?: "admin" | "moderator" | "vip" | "member";
   accent: string;
   nameColor?: string; // colour of the display name in the header
   avatarRing?: string; // colour of the ring around the avatar
@@ -86,6 +97,8 @@ export type ProfileRecord = {
   photos?: string[]; // legacy showcase images (kept for back-compat)
   showcaseStyle?: "grid" | "full";
   showcases?: Showcase[]; // Steam-style reorderable, named showcase blocks
+  likes?: string[]; // userIds who liked this profile (Famous badge)
+  grantedBadges?: string[]; // admin-granted badges ("secret", "cutefactor")
   comments: ProfileComment[];
   updatedAt: number;
 };
@@ -259,11 +272,12 @@ function statsOf(u: UserRecord): UserStats {
     messages: u.messages,
     nightMessages: u.nightMessages,
     daysVisited: u.visitDays.length,
-    eventsAttended: u.eventsAttended,
-    eventsHosted: u.eventsHosted,
     wateredOthers: u.wateredOthers,
     waterReceived: u.waterReceived,
-    growth: growthScore(u)
+    growth: growthScore(u),
+    feedPosts: u.feedPosts ?? 0,
+    gamesFinished: u.gamesFinished ?? 0,
+    profileSaves: u.profileSaves ?? 0
   };
 }
 
@@ -340,7 +354,14 @@ function awardNewBadges(u: UserRecord) {
 
 // ---- Public API ----
 
-export type ActivityType = "message" | "visit" | "attend" | "host";
+export type ActivityType =
+  | "message"
+  | "visit"
+  | "attend"
+  | "host"
+  | "feedPost"
+  | "gameFinished"
+  | "customize";
 
 export function recordActivity(userId: string, name: string, type: ActivityType, avatar?: string) {
   const db = read();
@@ -353,6 +374,12 @@ export function recordActivity(userId: string, name: string, type: ActivityType,
     u.eventsAttended += 1;
   } else if (type === "host") {
     u.eventsHosted += 1;
+  } else if (type === "feedPost") {
+    u.feedPosts = (u.feedPosts ?? 0) + 1;
+  } else if (type === "gameFinished") {
+    u.gamesFinished = (u.gamesFinished ?? 0) + 1;
+  } else if (type === "customize") {
+    u.profileSaves = (u.profileSaves ?? 0) + 1;
   }
   const newBadges = awardNewBadges(u);
   cache = db;
@@ -446,8 +473,65 @@ export function badgesForUser(userId: string): string[] {
   return read().users[userId]?.badges ?? [];
 }
 
-export function allBadgeDefs() {
-  return BADGES.map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, description: b.description }));
+// Quest progress + advanced badges for a user (by userId, with the profile
+// that user owns for likes/granted badges). Powers the quest board UI.
+export function questBoardFor(userId: string) {
+  const db = read();
+  const u = db.users[userId];
+  const stats: UserStats = u
+    ? statsOf(u)
+    : {
+        messages: 0,
+        nightMessages: 0,
+        daysVisited: 0,
+        wateredOthers: 0,
+        waterReceived: 0,
+        growth: 0,
+        feedPosts: 0,
+        gamesFinished: 0,
+        profileSaves: 0
+      };
+  const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
+  const likes = profile?.likes?.length ?? 0;
+  const granted = new Set(profile?.grantedBadges ?? []);
+
+  const quests = QUESTS.map((q) => ({
+    id: q.id,
+    name: q.name,
+    emoji: q.emoji,
+    description: q.description,
+    current: Math.min(q.value(stats), q.target),
+    target: q.target,
+    done: questDone(q, stats)
+  }));
+
+  const advanced = ADVANCED_BADGES.map((b) => {
+    let earned = false;
+    if (b.id === "ourchat") earned = allQuestsDone(stats);
+    else if (b.id === "famous") earned = likes >= FAMOUS_LIKES;
+    else if (b.granted) earned = granted.has(b.id);
+    // locked badges (gardener) stay unearned until their feature ships
+    return {
+      id: b.id,
+      name: b.name,
+      emoji: b.emoji,
+      description: b.description,
+      granted: !!b.granted,
+      locked: !!b.locked,
+      earned: b.locked ? false : earned
+    };
+  });
+
+  return { quests, advanced, likes };
+}
+
+// Advanced badges earned by the member who owns `slug` (shown on the public
+// profile next to their name).
+export function earnedAdvancedBadges(slug: string) {
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile?.ownerId) return [];
+  return questBoardFor(profile.ownerId).advanced.filter((b) => b.earned);
 }
 
 // Deterministic id for free-text names (used for demo guests / event hosts).
@@ -495,7 +579,7 @@ export type MemberCard = {
   motto?: string;
   region?: string;
   vibe?: string;
-  storedRole?: "admin" | "moderator" | "member";
+  storedRole?: "admin" | "moderator" | "vip" | "member";
   joinedAt: number;
 };
 
@@ -614,7 +698,12 @@ export function saveProfile(
   if (patch.showcaseStyle === "grid" || patch.showcaseStyle === "full") {
     base.showcaseStyle = patch.showcaseStyle;
   }
-  if (patch.role === "admin" || patch.role === "moderator" || patch.role === "member") {
+  if (
+    patch.role === "admin" ||
+    patch.role === "moderator" ||
+    patch.role === "vip" ||
+    patch.role === "member"
+  ) {
     base.role = patch.role;
   }
   // Steam-style showcases: validate, cap counts/sizes.
@@ -640,6 +729,8 @@ export function saveProfile(
   db.profiles[slug] = base;
   cache = db;
   write();
+  // Counts toward the "Dressed Up" quest.
+  recordActivity(editorId, editorName, "customize");
   return { ok: true, profile: base };
 }
 
@@ -749,6 +840,8 @@ export function createFeedPost(input: {
   db.feedPosts.push(post);
   cache = db;
   write();
+  // Counts toward the "Friend Finder" quest.
+  recordActivity(input.authorId, input.authorName, "feedPost");
   return { ok: true, post };
 }
 
@@ -853,4 +946,42 @@ export function clearPoke(pokeId: string, userId: string) {
   cache = db;
   write();
   return { ok: true as const };
+}
+
+// ---- Profile likes (Famous badge) & admin-granted badges ----
+
+export function toggleProfileLike(slug: string, userId: string) {
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile) return { ok: false as const, error: "No profile" };
+  if (profile.ownerId === userId) return { ok: false as const, error: "You can't like yourself!" };
+  const likes = profile.likes ?? [];
+  const liked = likes.includes(userId);
+  profile.likes = liked ? likes.filter((id) => id !== userId) : [...likes, userId];
+  cache = db;
+  write();
+  return { ok: true as const, likes: profile.likes.length, liked: !liked };
+}
+
+// Is the given userId an admin? (Owns a profile whose slug resolves to admin.)
+export function isAdminUser(userId: string, adminSlugs: string[]): boolean {
+  const db = read();
+  const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
+  return !!profile && adminSlugs.includes(profile.slug);
+}
+
+const GRANTABLE = ["secret", "cutefactor"];
+
+export function grantProfileBadge(slug: string, badge: string, granterIsAdmin: boolean) {
+  if (!granterIsAdmin) return { ok: false as const, error: "Admins only" };
+  if (!GRANTABLE.includes(badge)) return { ok: false as const, error: "Not a grantable badge" };
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile) return { ok: false as const, error: "No profile" };
+  const granted = profile.grantedBadges ?? [];
+  const has = granted.includes(badge);
+  profile.grantedBadges = has ? granted.filter((b) => b !== badge) : [...granted, badge];
+  cache = db;
+  write();
+  return { ok: true as const, grantedBadges: profile.grantedBadges };
 }

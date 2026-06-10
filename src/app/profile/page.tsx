@@ -108,7 +108,7 @@ export default function ProfilePage() {
       <ProfileEditor />
 
       <section>
-        <h3 className="mb-3 text-xl">Your badge shelf 🏆</h3>
+        <h3 className="mb-3 text-xl">Quests &amp; badges 🏆</h3>
         <BadgeShelf />
       </section>
     </div>

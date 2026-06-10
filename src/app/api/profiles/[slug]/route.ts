@@ -4,14 +4,19 @@ import {
   saveProfile,
   addProfileComment,
   deleteProfileComment,
-  reportProfile
+  reportProfile,
+  toggleProfileLike,
+  grantProfileBadge,
+  isAdminUser,
+  earnedAdvancedBadges
 } from "@/lib/db";
+import { ADMIN_SLUGS } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: { slug: string } }) {
   const profile = getProfile(params.slug);
-  return NextResponse.json({ profile });
+  return NextResponse.json({ profile, earnedBadges: earnedAdvancedBadges(params.slug) });
 }
 
 // POST { action: "save" | "comment" | "report" | "delete-comment", ... }
@@ -52,6 +57,22 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     const result = deleteProfileComment(slug, body.commentId, body.requesterId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
     return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "like") {
+    if (!body.userId) return NextResponse.json({ error: "Missing user" }, { status: 400 });
+    const result = toggleProfileLike(slug, body.userId);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json(result);
+  }
+
+  if (body.action === "grant-badge") {
+    if (!body.granterId || !body.badge) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+    const result = grantProfileBadge(slug, body.badge, isAdminUser(body.granterId, ADMIN_SLUGS));
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
+    return NextResponse.json({ ok: true, grantedBadges: result.grantedBadges });
   }
 
   if (body.action === "report") {

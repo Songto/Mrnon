@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default function MembersPage() {
   const members = listMembers();
-  const byRole: Record<Role, MemberCard[]> = { admin: [], moderator: [], member: [] };
+  const byRole: Record<Role, MemberCard[]> = { admin: [], moderator: [], vip: [], member: [] };
   for (const m of members) byRole[roleForSlug(m.slug, m.storedRole)].push(m);
 
   return (

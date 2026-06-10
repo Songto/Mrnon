@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { memberSlug } from "@/lib/members";
+import { ADMIN_SLUGS } from "@/lib/roles";
+import { clsx } from "@/lib/clsx";
 import { backgroundCss, bannerCss, type ImageFit } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
@@ -54,6 +56,8 @@ type Profile = {
   photos?: string[];
   showcaseStyle?: "grid" | "full";
   showcases?: Showcase[];
+  likes?: string[];
+  grantedBadges?: string[];
   comments: Comment[];
 };
 
@@ -83,10 +87,13 @@ function timeAgo(ts: number): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+type EarnedBadge = { id: string; name: string; emoji: string; description: string };
+
 export function ProfileView({ slug, fallback }: { slug: string; fallback: ProfileFallback }) {
   const { identity } = useIdentity();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
   const [draft, setDraft] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -101,6 +108,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
       .then((d) => {
         setProfile(d.profile);
         setComments(d.profile?.comments ?? []);
+        setEarnedBadges(d.earnedBadges ?? []);
       })
       .catch(() => {});
 
@@ -111,6 +119,44 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
 
   const accent = profile?.accent || fallback.tierColor;
   const isOwner = !!identity && memberSlug(identity.name) === slug;
+  const viewerIsAdmin = !!identity && ADMIN_SLUGS.includes(memberSlug(identity.name));
+
+  const likeCount = profile?.likes?.length ?? 0;
+  const iLiked = !!identity && !!profile?.likes?.includes(identity.userId);
+
+  const toggleLike = async () => {
+    if (!identity) {
+      setShowLogin(true);
+      return;
+    }
+    if (isOwner) return;
+    // optimistic
+    setProfile((p) =>
+      p
+        ? {
+            ...p,
+            likes: iLiked
+              ? (p.likes ?? []).filter((id) => id !== identity.userId)
+              : [...(p.likes ?? []), identity.userId]
+          }
+        : p
+    );
+    await fetch(`/api/profiles/${slug}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "like", userId: identity.userId })
+    }).catch(() => {});
+  };
+
+  const grantBadge = async (badge: string) => {
+    if (!identity || !viewerIsAdmin) return;
+    await fetch(`/api/profiles/${slug}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "grant-badge", badge, granterId: identity.userId })
+    }).catch(() => {});
+    load();
+  };
 
   const sendComment = async () => {
     const text = draft.trim();
@@ -210,6 +256,21 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                 <Avatar name={fallback.displayName} src={profile?.avatarUrl} size={88} />
               </div>
               <div className="flex flex-wrap items-center gap-2 pb-1">
+                {/* like ❤️ — feeds the Famous badge */}
+                <button
+                  onClick={toggleLike}
+                  disabled={isOwner}
+                  title={isOwner ? "Your own profile" : iLiked ? "Unlike" : "Like this profile"}
+                  className={clsx(
+                    "flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-display transition active:scale-95 disabled:opacity-60",
+                    iLiked
+                      ? "bg-strawberry text-night shadow-cozy"
+                      : "border border-cocoa/10 text-cocoa-soft hover:bg-surface"
+                  )}
+                >
+                  <span className={iLiked ? "animate-pop" : ""}>{iLiked ? "❤️" : "🤍"}</span>
+                  {likeCount}
+                </button>
                 <ProfileMusic url={profile?.musicUrl} accent={accent} />
                 {isOwner ? (
                   <Link href="/profile">
@@ -247,7 +308,39 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               >
                 {fallback.tierEmoji} {fallback.tierName}
               </span>
+              {/* advanced badges earned by this member */}
+              {earnedBadges.map((b) => (
+                <span
+                  key={b.id}
+                  title={`${b.name} — ${b.description}`}
+                  className="rounded-full border border-honey/70 bg-gradient-to-b from-surface to-honey/30 px-2 py-0.5 text-sm shadow-cozy"
+                >
+                  {b.emoji}
+                </span>
+              ))}
             </div>
+
+            {/* admin-only: grant/revoke the special badges */}
+            {viewerIsAdmin && !isOwner && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <span className="text-cocoa-soft">Award:</span>
+                {(["secret", "cutefactor"] as const).map((b) => {
+                  const has = profile?.grantedBadges?.includes(b);
+                  return (
+                    <button
+                      key={b}
+                      onClick={() => grantBadge(b)}
+                      className={clsx(
+                        "rounded-full px-2.5 py-1 font-display transition",
+                        has ? "bg-honey text-night" : "bg-cocoa/5 text-cocoa-soft hover:bg-cocoa/10"
+                      )}
+                    >
+                      {b === "secret" ? "🤫 Secret" : "🎀 Cutefactor"} {has ? "✓" : "+"}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {profile?.tagline && (
               <p className="mt-2 break-words font-display text-lg [overflow-wrap:anywhere]" style={{ color: accent }}>

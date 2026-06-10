@@ -255,6 +255,17 @@ app.prepare().then(() => {
         }
         if (oIsOver(game.board)) game.winner = oWinner(game.board);
       }
+      // A finished game counts toward the "Game Night" quest for both players.
+      if (game.winner) {
+        try {
+          for (const [color, uid] of Object.entries(game.players)) {
+            const name = (game.names as Record<string, string>)[color] || "Player";
+            recordActivity(uid, name, "gameFinished");
+          }
+        } catch {
+          /* best-effort */
+        }
+      }
       io.to(current.room).emit("game:state", game);
     });
 
