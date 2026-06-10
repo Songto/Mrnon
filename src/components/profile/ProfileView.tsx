@@ -8,6 +8,7 @@ import { backgroundCss, bannerCss, type ImageFit } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
+import { Icon } from "@/components/ui/Icon";
 import { ProfileMusic } from "./ProfileMusic";
 import { PhotoShowcase } from "./PhotoShowcase";
 import { ShowcaseList } from "./ShowcaseList";
@@ -212,7 +213,9 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                 <ProfileMusic url={profile?.musicUrl} accent={accent} />
                 {isOwner ? (
                   <Link href="/profile">
-                    <CozyButton className="px-4 py-2 text-sm">Customize ✏️</CozyButton>
+                    <CozyButton className="gap-1.5 px-4 py-2 text-sm">
+                      <Icon name="pencil" size={16} /> Customize
+                    </CozyButton>
                   </Link>
                 ) : (
                   <button
@@ -222,9 +225,9 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                       setReportReason("");
                       setTimeout(() => reasonRef.current?.focus(), 50);
                     }}
-                    className="rounded-full border border-cocoa/10 px-3 py-2 text-xs text-cocoa-soft hover:bg-surface"
+                    className="flex items-center gap-1.5 rounded-full border border-cocoa/10 px-3 py-2 text-xs text-cocoa-soft hover:bg-surface"
                   >
-                    🚩 Report
+                    <Icon name="flag" size={14} /> Report
                   </button>
                 )}
               </div>

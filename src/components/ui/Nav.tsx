@@ -9,6 +9,7 @@ import { clsx } from "@/lib/clsx";
 import { Avatar } from "./Avatar";
 import { CozyButton } from "./CozyButton";
 import { IdentityModal } from "./IdentityModal";
+import { Icon, type IconName } from "./Icon";
 
 export function Nav() {
   const pathname = usePathname();
@@ -18,13 +19,13 @@ export function Nav() {
   // "Profile" opens the user's PUBLIC profile (they can edit from there);
   // falls back to the editor if they haven't picked a name yet.
   const profileHref = identity ? `/members/${memberSlug(identity.name)}` : "/profile";
-  const LINKS = [
-    { href: "/", label: "Parlor", emoji: "🏡" },
-    { href: "/tearoom", label: "Rooms", emoji: "💬" },
-    { href: "/members", label: "Members", emoji: "🪪" },
-    { href: "/feed", label: "Feed", emoji: "🌷" },
-    { href: "/garden", label: "Garden", emoji: "🌿" },
-    { href: profileHref, label: "Profile", emoji: "👤" }
+  const LINKS: { href: string; label: string; icon: IconName }[] = [
+    { href: "/", label: "Parlor", icon: "home" },
+    { href: "/tearoom", label: "Rooms", icon: "chat" },
+    { href: "/members", label: "Members", icon: "users" },
+    { href: "/feed", label: "Feed", icon: "userPlus" },
+    { href: "/garden", label: "Garden", icon: "leaf" },
+    { href: profileHref, label: "Profile", icon: "user" }
   ];
 
   const isActive = (href: string) =>
@@ -50,11 +51,11 @@ export function Nav() {
                   <Link
                     href={l.href}
                     className={clsx(
-                      "cozy-link text-sm",
+                      "cozy-link flex items-center gap-1.5 text-sm",
                       active ? "bg-rose/40 text-cocoa" : "text-cocoa-soft hover:bg-surface/70"
                     )}
                   >
-                    <span className="mr-1">{l.emoji}</span>
+                    <Icon name={l.icon} size={18} />
                     {l.label}
                   </Link>
                 </li>
@@ -92,11 +93,11 @@ export function Nav() {
                 <Link
                   href={l.href}
                   className={clsx(
-                    "flex flex-col items-center rounded-2xl px-3 py-1 text-[10px]",
+                    "flex flex-col items-center gap-0.5 rounded-2xl px-3 py-1 text-[10px]",
                     active ? "text-rose-deep" : "text-cocoa-soft"
                   )}
                 >
-                  <span className="text-lg">{l.emoji}</span>
+                  <Icon name={l.icon} size={20} />
                   {l.label}
                 </Link>
               </li>
