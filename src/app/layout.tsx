@@ -10,7 +10,8 @@ import { discordConfigured } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "OURCHAT Teaparty 🍓 — our cozy game community",
   description:
-    "The home of the OURCHAT Teaparty community. Pull up a chair, sip the tea of the day, meet the members, and chat live in our cozy rooms — all linked to our Discord."
+    "The home of the OURCHAT Teaparty community. Pull up a chair, sip the tea of the day, meet the members, and chat live in our cozy rooms — all linked to our Discord.",
+  icons: { icon: "/logo.png", apple: "/logo.png" }
 };
 
 export const viewport: Viewport = {

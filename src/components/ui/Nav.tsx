@@ -15,6 +15,7 @@ export function Nav() {
   const pathname = usePathname();
   const { identity, ready, logout } = useIdentity();
   const [modal, setModal] = useState(false);
+  const [logoOk, setLogoOk] = useState(true); // falls back to 🍓 if /logo.png is missing
 
   // "Profile" opens the user's PUBLIC profile (they can edit from there);
   // falls back to the editor if they haven't picked a name yet.
@@ -36,7 +37,19 @@ export function Nav() {
       <header className="sticky top-0 z-40 border-b border-cocoa/10 bg-cream/80 backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 font-display text-xl font-bold">
-            <span className="animate-wiggle text-2xl">🍓</span>
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-cream ring-1 ring-cocoa/10">
+              {logoOk ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src="/logo.png"
+                  alt="Ourchat logo"
+                  className="h-full w-full object-cover"
+                  onError={() => setLogoOk(false)}
+                />
+              ) : (
+                <span className="animate-wiggle text-xl">🍓</span>
+              )}
+            </span>
             <span className="bg-gradient-to-r from-strawberry to-sage-deep bg-clip-text text-transparent">
               OURCHAT
             </span>
