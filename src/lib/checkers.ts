@@ -157,8 +157,10 @@ export function applyMove(board: Board, move: Move): ApplyResult | null {
   next[move.to] = piece;
 
   let continueFrom: number | null = null;
-  if (move.captured != null && !kinged) {
-    // multi-jump: same piece must continue if more jumps are available
+  if (move.captured != null) {
+    // Multi-jump: keep going if more jumps are available. A man that just
+    // promoted continues as a flying king (Thai rule), so it can immediately
+    // fly-capture in any direction.
     if (jumpsFrom(next, move.to).length) continueFrom = move.to;
   }
   return { board: next, captured: move.captured != null, kinged, continueFrom };
