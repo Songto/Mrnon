@@ -53,8 +53,10 @@ function jumpsFrom(board: Board, i: number): Move[] {
   if (!p) return [];
   const [r, c] = rc(i);
   const out: Move[] = [];
-  // Thai style: men may capture in all four diagonals (forward AND backward).
+  const fwd = p.c === "r" ? -1 : 1;
   for (const [dr, dc] of ALL_DIRS) {
+    // Thai rules: only the (flying) king captures backward; men capture forward.
+    if (!p.k && dr !== fwd) continue;
     if (p.k) {
       // Flying king: glide over empty squares to the first piece; if it's an
       // enemy with empty square(s) beyond, capture it and land anywhere past it.
