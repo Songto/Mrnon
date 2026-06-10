@@ -68,6 +68,8 @@ export type ProfileRecord = {
   motto?: string; // the member's motto, shown in the card's motto box
   role?: "admin" | "moderator" | "member";
   accent: string;
+  nameColor?: string; // colour of the display name in the header
+  avatarRing?: string; // colour of the ring around the avatar
   avatarUrl?: string;
   avatarPos?: string;
   bannerId: string;
@@ -516,7 +518,8 @@ export function listMembers(): MemberCard[] {
 // Plain text/string fields that get length-capped to 600 chars on save.
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
-  "favoriteGames", "lookingFor", "vibe", "cardBlurb", "motto", "accent", "bannerId",
+  "favoriteGames", "lookingFor", "vibe", "cardBlurb", "motto", "accent",
+  "nameColor", "avatarRing", "bannerId",
   "backgroundId", "discord", "twitch",
   "avatarPos", "bannerFit", "bannerPos", "backgroundFit", "backgroundPos"
 ];

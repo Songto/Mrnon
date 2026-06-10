@@ -37,6 +37,8 @@ type Form = {
   twitch: string;
   musicUrl: string;
   accent: string;
+  nameColor: string;
+  avatarRing: string;
   avatarUrl: string;
   bannerId: string;
   bannerUrl: string;
@@ -67,6 +69,8 @@ const EMPTY: Form = {
   twitch: "",
   musicUrl: "",
   accent: ACCENTS[0],
+  nameColor: "#3E2C1B",
+  avatarRing: "",
   avatarUrl: "",
   bannerId: "berry",
   bannerUrl: "",
@@ -226,11 +230,11 @@ export function ProfileEditor() {
           className="flex items-end gap-3 px-4 pb-3"
           style={{ background: backgroundCss(form.backgroundId, form.backgroundUrl, form.backgroundFit, form.backgroundPos) }}
         >
-          <div className="-mt-8 rounded-full ring-4" style={{ ["--tw-ring-color" as string]: form.accent }}>
+          <div className="-mt-8 rounded-full ring-4" style={{ ["--tw-ring-color" as string]: form.avatarRing || form.accent }}>
             <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={64} />
           </div>
           <div className="pb-1">
-            <p className="font-display text-lg text-cocoa">{form.displayName || identity.name}</p>
+            <p className="font-display text-lg font-bold" style={{ color: form.nameColor || "#3E2C1B", textShadow: "0 1px 2px rgba(255,255,255,0.6)" }}>{form.displayName || identity.name}</p>
             {form.tagline && (
               <p className="text-xs" style={{ color: form.accent }}>
                 “{form.tagline}”
@@ -451,9 +455,53 @@ export function ProfileEditor() {
                   key={c}
                   onClick={() => set("accent", c)}
                   className={`h-8 w-8 rounded-full ring-2 transition ${
-                    form.accent === c ? "ring-white" : "ring-transparent"
+                    form.accent === c ? "ring-cocoa/40" : "ring-transparent"
                   }`}
                   style={{ background: c }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Name colour */}
+          <div>
+            <p className="mb-2 text-xs font-display text-cocoa-soft">Name colour</p>
+            <div className="flex flex-wrap gap-2">
+              {["#3E2C1B", "#FFFFFF", ...ACCENTS].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => set("nameColor", c)}
+                  className={`h-8 w-8 rounded-full border border-cocoa/15 ring-2 transition ${
+                    form.nameColor === c ? "ring-cocoa/40" : "ring-transparent"
+                  }`}
+                  style={{ background: c }}
+                  title={c}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Avatar ring colour */}
+          <div>
+            <p className="mb-2 text-xs font-display text-cocoa-soft">Avatar ring colour</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => set("avatarRing", "")}
+                className={`rounded-full px-3 py-1.5 text-[11px] font-display transition ${
+                  !form.avatarRing ? "bg-strawberry text-night" : "bg-cocoa/5 text-cocoa-soft"
+                }`}
+              >
+                match accent
+              </button>
+              {["#FFFFFF", ...ACCENTS].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => set("avatarRing", c)}
+                  className={`h-8 w-8 rounded-full border border-cocoa/15 ring-2 transition ${
+                    form.avatarRing === c ? "ring-cocoa/40" : "ring-transparent"
+                  }`}
+                  style={{ background: c }}
+                  title={c}
                 />
               ))}
             </div>

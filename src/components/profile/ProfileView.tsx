@@ -34,7 +34,10 @@ type Profile = {
   favoriteGames?: string;
   lookingFor?: string;
   vibe?: string;
+  motto?: string;
   accent: string;
+  nameColor?: string;
+  avatarRing?: string;
   avatarUrl?: string;
   bannerId: string;
   bannerUrl?: string;
@@ -199,24 +202,38 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           <div className="px-5 pb-5">
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-3">
               <div className="flex items-end gap-3">
-                <div className="rounded-full ring-4" style={{ ["--tw-ring-color" as string]: accent }}>
+                <div
+                  className="rounded-full ring-4"
+                  style={{ ["--tw-ring-color" as string]: profile?.avatarRing || accent }}
+                >
                   <Avatar name={fallback.displayName} src={profile?.avatarUrl} size={88} />
                 </div>
                 <div className="pb-1">
-                  <h1 className="flex items-center gap-2 text-2xl">
+                  <h1
+                    className="flex items-center gap-2 text-2xl font-bold"
+                    style={{
+                      color: profile?.nameColor || "#3E2C1B",
+                      textShadow: "0 1px 3px rgba(255,255,255,0.6)"
+                    }}
+                  >
                     {profile?.displayName || fallback.displayName}
                     {fallback.tag && (
                       <span
                         className="rounded-md px-1.5 py-0.5 text-[11px] font-bold text-night"
-                        style={{ background: accent }}
+                        style={{ background: accent, textShadow: "none" }}
                       >
                         {fallback.tag}
                       </span>
                     )}
                   </h1>
-                  <span className="text-sm" style={{ color: accent }}>
+                  <span className="text-sm font-display" style={{ color: accent }}>
                     {fallback.tierEmoji} {fallback.tierName}
                   </span>
+                  {profile?.motto && (
+                    <p className="mt-0.5 text-sm italic text-cocoa-soft [overflow-wrap:anywhere]">
+                      “{profile.motto}”
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 pb-1">
@@ -286,13 +303,12 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                     {items.map((it) => (
                       <div
                         key={it.label}
-                        className="rounded-2xl px-3.5 py-2.5 text-center"
+                        className="rounded-2xl px-3.5 py-3 text-center"
                         style={{ background: `${accent}14` }}
+                        title={it.label}
                       >
-                        <p className="mb-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cocoa-soft">
-                          <span className="text-sm">{it.icon}</span> {it.label}
-                        </p>
-                        <p className="break-words text-sm font-display [overflow-wrap:anywhere]">
+                        <div className="text-lg leading-none">{it.icon}</div>
+                        <p className="mt-1.5 break-words text-sm font-display [overflow-wrap:anywhere]">
                           {it.value}
                         </p>
                       </div>
