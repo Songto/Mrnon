@@ -3,6 +3,24 @@
 // Client-side image helpers: load a file into an <img>, resize it onto a
 // canvas, and read out a JPEG data URL. Keeps uploads small (no server needed).
 
+export function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export function isGif(file: File): boolean {
+  return file.type === "image/gif";
+}
+
+export function dataUrlKB(dataUrl: string): number {
+  const base64 = dataUrl.split(",")[1] ?? "";
+  return Math.round((base64.length * 3) / 4 / 1024);
+}
+
 export function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {

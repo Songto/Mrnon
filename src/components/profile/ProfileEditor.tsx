@@ -8,14 +8,17 @@ import {
   ACCENTS,
   BANNERS,
   BACKGROUNDS,
+  FIT_OPTIONS,
   MUSIC_SUGGESTIONS,
   bannerCss,
-  backgroundCss
+  backgroundCss,
+  type ImageFit
 } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { PhotoStudio } from "./PhotoStudio";
 import { ImageUpload } from "./ImageUpload";
+import { FocalPicker } from "./FocalPicker";
 
 type Form = {
   displayName: string;
@@ -34,8 +37,12 @@ type Form = {
   avatarUrl: string;
   bannerId: string;
   bannerUrl: string;
+  bannerFit: ImageFit;
+  bannerPos: string;
   backgroundId: string;
   backgroundUrl: string;
+  backgroundFit: ImageFit;
+  backgroundPos: string;
   photos: string[];
   showcaseStyle: "grid" | "full";
 };
@@ -57,11 +64,38 @@ const EMPTY: Form = {
   avatarUrl: "",
   bannerId: "berry",
   bannerUrl: "",
+  bannerFit: "fill",
+  bannerPos: "50% 50%",
   backgroundId: "plum",
   backgroundUrl: "",
+  backgroundFit: "fill",
+  backgroundPos: "50% 50%",
   photos: [],
   showcaseStyle: "grid"
 };
+
+// "Choose a fit" row, modelled on the Windows wallpaper settings.
+function FitRow({ value, onChange }: { value: ImageFit; onChange: (f: ImageFit) => void }) {
+  return (
+    <div>
+      <p className="mb-1 text-[11px] text-cocoa-soft">Photo style</p>
+      <div className="flex flex-wrap gap-1.5">
+        {FIT_OPTIONS.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-display transition ${
+              value === o.id ? "bg-strawberry text-night" : "bg-cocoa/5 text-cocoa-soft hover:bg-cocoa/10"
+            }`}
+          >
+            {o.emoji} {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Field({
   label,
@@ -162,11 +196,11 @@ export function ProfileEditor() {
       <div className="mb-5 overflow-hidden rounded-cozy border border-cocoa/10">
         <div
           className="h-24 w-full"
-          style={{ background: bannerCss(form.bannerId, form.bannerUrl) }}
+          style={{ background: bannerCss(form.bannerId, form.bannerUrl, form.bannerFit, form.bannerPos) }}
         />
         <div
           className="flex items-end gap-3 px-4 pb-3"
-          style={{ background: backgroundCss(form.backgroundId, form.backgroundUrl) }}
+          style={{ background: backgroundCss(form.backgroundId, form.backgroundUrl, form.backgroundFit, form.backgroundPos) }}
         >
           <div className="-mt-8 rounded-full ring-4" style={{ ["--tw-ring-color" as string]: form.accent }}>
             <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={64} />
@@ -228,17 +262,29 @@ export function ProfileEditor() {
               ))}
             </div>
             {form.bannerId === "custom" && form.bannerUrl ? (
-              <div className="mt-2 flex items-center justify-between rounded-full bg-sage/30 px-3 py-1.5 text-xs">
-                <span>✓ Using your custom banner</span>
-                <button
-                  onClick={() => {
-                    set("bannerUrl", "");
-                    set("bannerId", "berry");
-                  }}
-                  className="text-cocoa-soft hover:text-strawberry"
-                >
-                  remove
-                </button>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center justify-between rounded-full bg-sage/30 px-3 py-1.5 text-xs">
+                  <span>✓ Using your custom banner</span>
+                  <button
+                    onClick={() => {
+                      set("bannerUrl", "");
+                      set("bannerId", "berry");
+                      set("bannerFit", "fill");
+                      set("bannerPos", "50% 50%");
+                    }}
+                    className="text-cocoa-soft hover:text-strawberry"
+                  >
+                    remove
+                  </button>
+                </div>
+                <FitRow value={form.bannerFit} onChange={(f) => set("bannerFit", f)} />
+                <FocalPicker
+                  url={form.bannerUrl}
+                  fit={form.bannerFit}
+                  pos={form.bannerPos}
+                  shape="banner"
+                  onChange={(p) => set("bannerPos", p)}
+                />
               </div>
             ) : (
               <>
@@ -283,17 +329,29 @@ export function ProfileEditor() {
               ))}
             </div>
             {form.backgroundId === "custom" && form.backgroundUrl ? (
-              <div className="mt-2 flex items-center justify-between rounded-full bg-sage/30 px-3 py-1.5 text-xs">
-                <span>✓ Using your custom background</span>
-                <button
-                  onClick={() => {
-                    set("backgroundUrl", "");
-                    set("backgroundId", "plum");
-                  }}
-                  className="text-cocoa-soft hover:text-strawberry"
-                >
-                  remove
-                </button>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center justify-between rounded-full bg-sage/30 px-3 py-1.5 text-xs">
+                  <span>✓ Using your custom background</span>
+                  <button
+                    onClick={() => {
+                      set("backgroundUrl", "");
+                      set("backgroundId", "plum");
+                      set("backgroundFit", "fill");
+                      set("backgroundPos", "50% 50%");
+                    }}
+                    className="text-cocoa-soft hover:text-strawberry"
+                  >
+                    remove
+                  </button>
+                </div>
+                <FitRow value={form.backgroundFit} onChange={(f) => set("backgroundFit", f)} />
+                <FocalPicker
+                  url={form.backgroundUrl}
+                  fit={form.backgroundFit}
+                  pos={form.backgroundPos}
+                  shape="background"
+                  onChange={(p) => set("backgroundPos", p)}
+                />
               </div>
             ) : (
               <>

@@ -66,10 +66,15 @@ export type ProfileRecord = {
   vibe?: string;
   accent: string;
   avatarUrl?: string;
+  avatarPos?: string;
   bannerId: string;
   bannerUrl?: string;
+  bannerFit?: string;
+  bannerPos?: string;
   backgroundId: string;
   backgroundUrl?: string;
+  backgroundFit?: string;
+  backgroundPos?: string;
   musicUrl?: string;
   discord?: string;
   twitch?: string;
@@ -456,7 +461,8 @@ export function getProfile(slug: string, displayName?: string): ProfileRecord {
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
   "favoriteGames", "lookingFor", "vibe", "accent", "bannerId",
-  "backgroundId", "discord", "twitch"
+  "backgroundId", "discord", "twitch",
+  "avatarPos", "bannerFit", "bannerPos", "backgroundFit", "backgroundPos"
 ];
 
 // URL / image fields that may hold long values (a pasted link OR an uploaded,

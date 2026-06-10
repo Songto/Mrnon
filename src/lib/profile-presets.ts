@@ -62,13 +62,45 @@ export const MUSIC_SUGGESTIONS: { label: string; url: string }[] = [
   { label: "Cozy cottage (YouTube)", url: "https://www.youtube.com/watch?v=lP26UCnoH9s" }
 ];
 
-export function bannerCss(id: string, url?: string): string {
-  if (id === "custom" && url) return `url("${url}") center/cover no-repeat`;
+// How a custom image fills its frame — modelled on the Windows wallpaper
+// "Choose a fit" options.
+export type ImageFit = "fill" | "fit" | "stretch" | "tile" | "center";
+
+export const FIT_OPTIONS: { id: ImageFit; label: string; emoji: string }[] = [
+  { id: "fill", label: "Fill", emoji: "⬛" },
+  { id: "fit", label: "Fit", emoji: "🔲" },
+  { id: "stretch", label: "Stretch", emoji: "↔️" },
+  { id: "tile", label: "Tile", emoji: "🔳" },
+  { id: "center", label: "Center", emoji: "🎯" }
+];
+
+const FILL_BEHIND = "#FBE7D4"; // shows around "fit"/"center" images
+
+function fitCss(url: string, fit: ImageFit, pos: string, fixed: boolean): string {
+  const p = pos || "50% 50%";
+  const fx = fixed ? " fixed" : "";
+  switch (fit) {
+    case "fit":
+      return `url("${url}") ${p}/contain no-repeat${fx}, ${FILL_BEHIND}`;
+    case "stretch":
+      return `url("${url}") 0 0/100% 100% no-repeat${fx}`;
+    case "tile":
+      return `url("${url}")${fx} repeat`;
+    case "center":
+      return `url("${url}") ${p}/auto no-repeat${fx}, ${FILL_BEHIND}`;
+    case "fill":
+    default:
+      return `url("${url}") ${p}/cover no-repeat${fx}`;
+  }
+}
+
+export function bannerCss(id: string, url?: string, fit: ImageFit = "fill", pos = "50% 50%"): string {
+  if (id === "custom" && url) return fitCss(url, fit, pos, false);
   return (BANNERS.find((b) => b.id === id) ?? BANNERS[0]).css;
 }
 
-export function backgroundCss(id: string, url?: string): string {
-  if (id === "custom" && url) return `url("${url}") center/cover fixed no-repeat`;
+export function backgroundCss(id: string, url?: string, fit: ImageFit = "fill", pos = "50% 50%"): string {
+  if (id === "custom" && url) return fitCss(url, fit, pos, true);
   return (BACKGROUNDS.find((b) => b.id === id) ?? BACKGROUNDS[0]).css;
 }
 

@@ -1,10 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { approxKB, loadImageFromFile, resizeToDataUrl, resizedDims } from "@/lib/image";
+import {
+  approxKB,
+  dataUrlKB,
+  isGif,
+  loadImageFromFile,
+  readFileAsDataUrl,
+  resizedDims,
+  resizeToDataUrl
+} from "@/lib/image";
 
 // A single-image uploader with a resize "studio" (live preview + size/quality
-// sliders), used for the profile banner and page background.
+// sliders). GIFs are kept as-is (no re-encoding) so they stay animated.
 export function ImageUpload({
   shape,
   defaultMax = 1080,
@@ -15,22 +23,40 @@ export function ImageUpload({
   onChange: (dataUrl: string) => void;
 }) {
   const [pending, setPending] = useState<HTMLImageElement | null>(null);
+  const [gifData, setGifData] = useState<string | null>(null); // raw gif data URL
   const [maxSize, setMaxSize] = useState(defaultMax);
   const [quality, setQuality] = useState(0.72);
   const [preview, setPreview] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    if (gifData) {
+      setPreview(gifData); // gifs are used unmodified
+      return;
+    }
     if (!pending) {
       setPreview("");
       return;
     }
     setPreview(resizeToDataUrl(pending, maxSize, quality));
-  }, [pending, maxSize, quality]);
+  }, [pending, gifData, maxSize, quality]);
 
   const reset = () => {
     setPending(null);
+    setGifData(null);
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const onPick = (f?: File) => {
+    if (!f) return;
+    if (isGif(f)) {
+      readFileAsDataUrl(f).then((d) => {
+        setGifData(d);
+        loadImageFromFile(f).then(setPending).catch(() => {});
+      });
+    } else {
+      loadImageFromFile(f).then(setPending).catch(() => {});
+    }
   };
 
   const use = () => {
@@ -46,9 +72,12 @@ export function ImageUpload({
         ? "mx-auto h-24 w-24 rounded-full"
         : "h-24 w-full";
 
+  const kb = gifData ? dataUrlKB(gifData) : preview ? approxKB(preview) : 0;
+  const tooBig = gifData && kb > 1100;
+
   return (
     <div className="mt-2">
-      {pending ? (
+      {pending || gifData ? (
         <div className="rounded-2xl border border-cocoa/10 bg-surface/60 p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -59,37 +88,45 @@ export function ImageUpload({
             }`}
           />
           <p className="mt-1 text-center text-[10px] text-cocoa-soft">
-            {resizedDims(pending, maxSize)} · ~{approxKB(preview)}KB
+            {gifData ? "GIF 🎞️ (kept animated)" : pending ? resizedDims(pending, maxSize) : ""} · ~{kb}KB
+            {tooBig && <span className="text-strawberry"> · large, please use a smaller GIF</span>}
           </p>
-          <label className="mt-1 block text-[11px] text-cocoa-soft">
-            Size: {maxSize}px
-            <input
-              type="range"
-              min={320}
-              max={1600}
-              step={40}
-              value={maxSize}
-              onChange={(e) => setMaxSize(parseInt(e.target.value, 10))}
-              className="w-full accent-strawberry"
-            />
-          </label>
-          <label className="block text-[11px] text-cocoa-soft">
-            Quality: {Math.round(quality * 100)}%
-            <input
-              type="range"
-              min={0.3}
-              max={0.95}
-              step={0.05}
-              value={quality}
-              onChange={(e) => setQuality(parseFloat(e.target.value))}
-              className="w-full accent-strawberry"
-            />
-          </label>
+
+          {!gifData && (
+            <>
+              <label className="mt-1 block text-[11px] text-cocoa-soft">
+                Size: {maxSize}px
+                <input
+                  type="range"
+                  min={320}
+                  max={1600}
+                  step={40}
+                  value={maxSize}
+                  onChange={(e) => setMaxSize(parseInt(e.target.value, 10))}
+                  className="w-full accent-strawberry"
+                />
+              </label>
+              <label className="block text-[11px] text-cocoa-soft">
+                Quality: {Math.round(quality * 100)}%
+                <input
+                  type="range"
+                  min={0.3}
+                  max={0.95}
+                  step={0.05}
+                  value={quality}
+                  onChange={(e) => setQuality(parseFloat(e.target.value))}
+                  className="w-full accent-strawberry"
+                />
+              </label>
+            </>
+          )}
+
           <div className="mt-2 flex gap-2">
             <button
               type="button"
               onClick={use}
-              className="flex-1 rounded-full bg-strawberry px-3 py-1.5 text-xs font-display text-night transition active:scale-95"
+              disabled={!!tooBig}
+              className="flex-1 rounded-full bg-strawberry px-3 py-1.5 text-xs font-display text-night transition active:scale-95 disabled:opacity-50"
             >
               Use this image ✨
             </button>
@@ -108,7 +145,7 @@ export function ImageUpload({
           onClick={() => fileRef.current?.click()}
           className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-dashed border-cocoa/15 bg-surface/40 px-4 py-2 text-xs text-cocoa-soft transition hover:border-strawberry hover:text-cocoa"
         >
-          🖼️ Upload your own {shape} — resize before applying
+          🖼️ Upload your own {shape} — JPG, PNG, or GIF
         </button>
       )}
       <input
@@ -116,10 +153,7 @@ export function ImageUpload({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) loadImageFromFile(f).then(setPending).catch(() => {});
-        }}
+        onChange={(e) => onPick(e.target.files?.[0])}
       />
     </div>
   );

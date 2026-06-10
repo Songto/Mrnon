@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { memberSlug } from "@/lib/members";
-import { backgroundCss, bannerCss } from "@/lib/profile-presets";
+import { backgroundCss, bannerCss, type ImageFit } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
@@ -36,8 +36,12 @@ type Profile = {
   avatarUrl?: string;
   bannerId: string;
   bannerUrl?: string;
+  bannerFit?: string;
+  bannerPos?: string;
   backgroundId: string;
   backgroundUrl?: string;
+  backgroundFit?: string;
+  backgroundPos?: string;
   musicUrl?: string;
   discord?: string;
   twitch?: string;
@@ -161,7 +165,14 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
       {/* Full-bleed custom background */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
-        style={{ background: backgroundCss(profile?.backgroundId || "plum", profile?.backgroundUrl) }}
+        style={{
+          background: backgroundCss(
+            profile?.backgroundId || "plum",
+            profile?.backgroundUrl,
+            (profile?.backgroundFit as ImageFit) || "fill",
+            profile?.backgroundPos || "50% 50%"
+          )
+        }}
       />
 
       <div className="space-y-5">
@@ -173,7 +184,14 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
         <div className="cozy-card overflow-hidden p-0" style={{ borderColor: `${accent}55` }}>
           <div
             className="h-36 w-full sm:h-44"
-            style={{ background: bannerCss(profile?.bannerId || "berry", profile?.bannerUrl) }}
+            style={{
+              background: bannerCss(
+                profile?.bannerId || "berry",
+                profile?.bannerUrl,
+                (profile?.bannerFit as ImageFit) || "fill",
+                profile?.bannerPos || "50% 50%"
+              )
+            }}
           />
           <div className="px-5 pb-5">
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-3">
