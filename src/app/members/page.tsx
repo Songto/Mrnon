@@ -64,7 +64,7 @@ export default function MembersPage() {
                 </span>
                 <span className="hidden text-xs text-cocoa-soft sm:inline">· {meta.blurb}</span>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-wrap gap-4">
                 {list.map((m) => (
                   <MemberMiniCard key={m.slug} member={m} />
                 ))}
