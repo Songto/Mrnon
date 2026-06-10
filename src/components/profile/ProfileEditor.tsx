@@ -14,11 +14,12 @@ import {
   backgroundCss,
   type ImageFit
 } from "@/lib/profile-presets";
+import type { Showcase } from "@/lib/db";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
-import { PhotoStudio } from "./PhotoStudio";
 import { ImageUpload } from "./ImageUpload";
 import { FocalPicker } from "./FocalPicker";
+import { ShowcaseManager } from "./ShowcaseManager";
 
 type Form = {
   displayName: string;
@@ -45,6 +46,7 @@ type Form = {
   backgroundPos: string;
   photos: string[];
   showcaseStyle: "grid" | "full";
+  showcases: Showcase[];
 };
 
 const EMPTY: Form = {
@@ -71,7 +73,8 @@ const EMPTY: Form = {
   backgroundFit: "fill",
   backgroundPos: "50% 50%",
   photos: [],
-  showcaseStyle: "grid"
+  showcaseStyle: "grid",
+  showcases: []
 };
 
 // "Choose a fit" row, modelled on the Windows wallpaper settings.
@@ -139,12 +142,25 @@ export function ProfileEditor() {
       .then((r) => r.json())
       .then((d) => {
         const p = d.profile || {};
+        // Migrate any legacy photos[] into a Screenshots showcase the first time.
+        let showcases: Showcase[] = Array.isArray(p.showcases) ? p.showcases : [];
+        if (showcases.length === 0 && Array.isArray(p.photos) && p.photos.length > 0) {
+          showcases = [
+            {
+              id: `sc-${Date.now()}`,
+              type: "screenshot",
+              title: "Screenshots",
+              images: p.photos.map((url: string) => ({ url }))
+            }
+          ];
+        }
         setForm({
           ...EMPTY,
           ...Object.fromEntries(
             Object.keys(EMPTY).map((k) => [k, (p as Record<string, unknown>)[k] ?? EMPTY[k as keyof Form]])
           ),
-          displayName: p.displayName || identity.name
+          displayName: p.displayName || identity.name,
+          showcases
         } as Form);
         setLoaded(true);
       })
@@ -415,13 +431,11 @@ export function ProfileEditor() {
             </div>
           </div>
 
-          {/* Photo showcase */}
+          {/* Showcases (Steam-style) */}
           <div className="border-t border-cocoa/10 pt-4">
-            <PhotoStudio
-              photos={form.photos}
-              style={form.showcaseStyle}
-              onPhotosChange={(photos) => set("photos", photos)}
-              onStyleChange={(s) => set("showcaseStyle", s)}
+            <ShowcaseManager
+              showcases={form.showcases}
+              onChange={(s) => set("showcases", s)}
             />
           </div>
 

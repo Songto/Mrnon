@@ -78,10 +78,20 @@ export type ProfileRecord = {
   musicUrl?: string;
   discord?: string;
   twitch?: string;
-  photos?: string[]; // showcase images (client-resized data URLs)
+  photos?: string[]; // legacy showcase images (kept for back-compat)
   showcaseStyle?: "grid" | "full";
+  showcases?: Showcase[]; // Steam-style reorderable, named showcase blocks
   comments: ProfileComment[];
   updatedAt: number;
+};
+
+export type ShowcaseImage = { url: string; pos?: string };
+export type Showcase = {
+  id: string;
+  type: "about" | "screenshot" | "feature";
+  title: string;
+  text?: string;
+  images?: ShowcaseImage[];
 };
 
 // A short-lived "looking for a friend" feed post. One active post per person;
@@ -470,7 +480,9 @@ const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
 const IMAGE_FIELDS: (keyof ProfileRecord)[] = ["avatarUrl", "bannerUrl", "backgroundUrl", "musicUrl"];
 
 const MAX_PHOTOS = 8;
-const MAX_PHOTO_BYTES = 600 * 1024; // ~600KB per (already client-resized) image
+const MAX_PHOTO_BYTES = 1100 * 1024; // ~1.1MB per image (covers small GIFs)
+const MAX_SHOWCASES = 8;
+const MAX_SHOWCASE_IMAGES = 12;
 const MAX_IMAGE_BYTES = 1200 * 1024; // banner/background may be a touch larger
 
 export function saveProfile(
@@ -510,6 +522,24 @@ export function saveProfile(
   }
   if (patch.showcaseStyle === "grid" || patch.showcaseStyle === "full") {
     base.showcaseStyle = patch.showcaseStyle;
+  }
+  // Steam-style showcases: validate, cap counts/sizes.
+  if (Array.isArray(patch.showcases)) {
+    base.showcases = patch.showcases
+      .filter((s) => s && ["about", "screenshot", "feature"].includes(s.type))
+      .slice(0, MAX_SHOWCASES)
+      .map((s) => ({
+        id: typeof s.id === "string" ? s.id : `sc-${Math.random().toString(36).slice(2, 8)}`,
+        type: s.type,
+        title: (s.title || "").slice(0, 60),
+        text: typeof s.text === "string" ? s.text.slice(0, 1200) : undefined,
+        images: Array.isArray(s.images)
+          ? s.images
+              .filter((im) => im && typeof im.url === "string" && im.url.length <= MAX_PHOTO_BYTES)
+              .slice(0, MAX_SHOWCASE_IMAGES)
+              .map((im) => ({ url: im.url, pos: typeof im.pos === "string" ? im.pos : undefined }))
+          : undefined
+      }));
   }
   base.ownerId = existing?.ownerId ?? editorId;
   base.updatedAt = Date.now();

@@ -10,6 +10,8 @@ import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 import { ProfileMusic } from "./ProfileMusic";
 import { PhotoShowcase } from "./PhotoShowcase";
+import { ShowcaseList } from "./ShowcaseList";
+import type { Showcase } from "@/lib/db";
 
 type Comment = {
   id: string;
@@ -47,6 +49,7 @@ type Profile = {
   twitch?: string;
   photos?: string[];
   showcaseStyle?: "grid" | "full";
+  showcases?: Showcase[];
   comments: Comment[];
 };
 
@@ -252,9 +255,14 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           </div>
         </div>
 
-        {/* Photo showcase */}
-        {profile?.photos && profile.photos.length > 0 && (
-          <PhotoShowcase photos={profile.photos} style={profile.showcaseStyle || "grid"} />
+        {/* Showcases (Steam-style: About / Screenshots / Featured) */}
+        {profile?.showcases && profile.showcases.length > 0 ? (
+          <ShowcaseList showcases={profile.showcases} accent={accent} />
+        ) : (
+          profile?.photos &&
+          profile.photos.length > 0 && (
+            <PhotoShowcase photos={profile.photos} style={profile.showcaseStyle || "grid"} />
+          )
         )}
 
         {/* Info panel — clean, Discord-style (uppercase labels, accent bar) */}
