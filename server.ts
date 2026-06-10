@@ -12,6 +12,16 @@ import {
   type Board,
   type Color
 } from "./src/lib/checkers";
+import {
+  oInitialBoard,
+  oLegalMoves,
+  oApplyMove,
+  oOther,
+  oIsOver,
+  oWinner,
+  type OBoard,
+  type OColor
+} from "./src/lib/othello";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || "localhost";
@@ -45,8 +55,8 @@ const LOBBY = "lobby";
 const roster = new Map<string, Map<string, Seat>>(); // room -> socketId -> seat
 const history = new Map<string, ChatMessage[]>(); // room -> messages
 
-// ---- Mini-game (checkers) state, one game per private room ----
-type Game = {
+// ---- Mini-game state, one game per private room (checkers or othello) ----
+type CheckersGame = {
   type: "checkers";
   board: Board;
   turn: Color;
@@ -55,6 +65,15 @@ type Game = {
   mustFrom: number | null; // mid multi-jump
   winner: Color | null;
 };
+type OthelloGame = {
+  type: "othello";
+  board: OBoard;
+  turn: OColor;
+  players: { b: string; w: string };
+  names: { b: string; w: string };
+  winner: OColor | "draw" | null;
+};
+type Game = CheckersGame | OthelloGame;
 const games = new Map<string, Game>(); // room -> game
 
 function seatsOf(room: string): Seat[] {
@@ -116,7 +135,7 @@ app.prepare().then(() => {
     const g = games.get(room);
     if (!g) return;
     const ids = new Set(playersOf(room).map((p) => p.userId));
-    if (!ids.has(g.players.r) || !ids.has(g.players.b)) {
+    if (Object.values(g.players).some((uid) => !ids.has(uid))) {
       games.delete(room);
       io.to(room).emit("game:state", null);
     }
@@ -161,52 +180,80 @@ app.prepare().then(() => {
       }
     );
 
-    // ---- Mini-game: Checkers ----
-    socket.on("game:start", () => {
+    // ---- Mini-games: Checkers & Othello ----
+    socket.on("game:start", (payload?: { gameType?: "checkers" | "othello" }) => {
       if (!current || current.room === LOBBY) return;
       const players = playersOf(current.room);
       if (players.length < 2) {
         socket.emit("game:error", "Need two people in the room to play.");
         return;
       }
-      // Starter plays red (moves first); the other distinct player is black.
       const me = current.seat;
       const opp = players.find((p) => p.userId !== me.userId)!;
-      const game: Game = {
-        type: "checkers",
-        board: initialBoard(),
-        turn: "r",
-        players: { r: me.userId, b: opp.userId },
-        names: { r: me.name, b: opp.name },
-        mustFrom: null,
-        winner: null
-      };
+      const type = payload?.gameType === "othello" ? "othello" : "checkers";
+      // The starter goes first (red in checkers, black in othello).
+      const game: Game =
+        type === "othello"
+          ? {
+              type: "othello",
+              board: oInitialBoard(),
+              turn: "b",
+              players: { b: me.userId, w: opp.userId },
+              names: { b: me.name, w: opp.name },
+              winner: null
+            }
+          : {
+              type: "checkers",
+              board: initialBoard(),
+              turn: "r",
+              players: { r: me.userId, b: opp.userId },
+              names: { r: me.name, b: opp.name },
+              mustFrom: null,
+              winner: null
+            };
       games.set(current.room, game);
       io.to(current.room).emit("game:state", game);
     });
 
-    socket.on("game:move", (payload: { from: number; to: number }) => {
+    socket.on("game:move", (payload: { from?: number; to: number }) => {
       if (!current) return;
       const game = games.get(current.room);
       if (!game || game.winner) return;
       const userId = current.seat.userId;
-      const myColor: Color | null =
-        game.players.r === userId ? "r" : game.players.b === userId ? "b" : null;
-      if (!myColor || myColor !== game.turn) return; // not your turn / spectator
 
-      const legal = legalMoves(game.board, myColor, game.mustFrom);
-      const move = legal.find((m) => m.from === payload.from && m.to === payload.to);
-      if (!move) return;
-
-      const res = applyMove(game.board, move);
-      if (!res) return;
-      game.board = res.board;
-      if (res.continueFrom != null) {
-        game.mustFrom = res.continueFrom; // same player keeps jumping
+      if (game.type === "checkers") {
+        const myColor: Color | null =
+          game.players.r === userId ? "r" : game.players.b === userId ? "b" : null;
+        if (!myColor || myColor !== game.turn || payload.from == null) return;
+        const legal = legalMoves(game.board, myColor, game.mustFrom);
+        const move = legal.find((m) => m.from === payload.from && m.to === payload.to);
+        if (!move) return;
+        const res = applyMove(game.board, move);
+        if (!res) return;
+        game.board = res.board;
+        if (res.continueFrom != null) {
+          game.mustFrom = res.continueFrom;
+        } else {
+          game.mustFrom = null;
+          game.turn = otherColor(myColor);
+          game.winner = winnerIfOver(game.board, game.turn);
+        }
       } else {
-        game.mustFrom = null;
-        game.turn = otherColor(myColor);
-        game.winner = winnerIfOver(game.board, game.turn);
+        // othello
+        const myColor: OColor | null =
+          game.players.b === userId ? "b" : game.players.w === userId ? "w" : null;
+        if (!myColor || myColor !== game.turn) return;
+        const legal = oLegalMoves(game.board, myColor);
+        const move = legal.find((m) => m.to === payload.to);
+        if (!move) return;
+        game.board = oApplyMove(game.board, move, myColor);
+        const opp = oOther(myColor);
+        if (oLegalMoves(game.board, opp).length > 0) {
+          game.turn = opp; // opponent plays
+        } else if (oLegalMoves(game.board, myColor).length > 0) {
+          game.turn = myColor; // opponent passes, you go again
+        }
+        if (oIsOver(game.board)) game.winner = oWinner(game.board);
       }
       io.to(current.room).emit("game:state", game);
     });
