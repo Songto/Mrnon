@@ -4,24 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useIdentity } from "@/lib/identity";
+import { memberSlug } from "@/lib/members";
 import { clsx } from "@/lib/clsx";
 import { Avatar } from "./Avatar";
 import { CozyButton } from "./CozyButton";
 import { IdentityModal } from "./IdentityModal";
 
-const LINKS = [
-  { href: "/", label: "Parlor", emoji: "🏡" },
-  { href: "/tearoom", label: "Rooms", emoji: "💬" },
-  { href: "/members", label: "Members", emoji: "🪪" },
-  { href: "/feed", label: "Feed", emoji: "🌷" },
-  { href: "/garden", label: "Garden", emoji: "🌿" },
-  { href: "/profile", label: "Me", emoji: "🍓" }
-];
-
 export function Nav() {
   const pathname = usePathname();
   const { identity, ready, logout } = useIdentity();
   const [modal, setModal] = useState(false);
+
+  // "Profile" opens the user's PUBLIC profile (they can edit from there);
+  // falls back to the editor if they haven't picked a name yet.
+  const profileHref = identity ? `/members/${memberSlug(identity.name)}` : "/profile";
+  const LINKS = [
+    { href: "/", label: "Parlor", emoji: "🏡" },
+    { href: "/tearoom", label: "Rooms", emoji: "💬" },
+    { href: "/members", label: "Members", emoji: "🪪" },
+    { href: "/feed", label: "Feed", emoji: "🌷" },
+    { href: "/garden", label: "Garden", emoji: "🌿" },
+    { href: profileHref, label: "Profile", emoji: "👤" }
+  ];
+
+  const isActive = (href: string) =>
+    href === profileHref ? pathname === profileHref || pathname === "/profile" : pathname === href;
 
   return (
     <>
@@ -37,7 +44,7 @@ export function Nav() {
 
           <ul className="hidden items-center gap-1 md:flex">
             {LINKS.map((l) => {
-              const active = pathname === l.href;
+              const active = isActive(l.href);
               return (
                 <li key={l.href}>
                   <Link
@@ -79,7 +86,7 @@ export function Nav() {
         {/* Mobile tab bar */}
         <ul className="flex items-center justify-around border-t border-cocoa/10 px-2 py-1 md:hidden">
           {LINKS.map((l) => {
-            const active = pathname === l.href;
+            const active = isActive(l.href);
             return (
               <li key={l.href}>
                 <Link

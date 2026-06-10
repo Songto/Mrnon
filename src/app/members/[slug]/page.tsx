@@ -32,7 +32,17 @@ function resolve(slug: string): ProfileFallback | null {
       note: m.note
     };
   }
-  return null;
+  // Fall back to a blank member card so the page always renders (e.g. a user
+  // visiting their own profile before they've customized it). The owner sees
+  // a "Customize" prompt via ProfileView.
+  const meta = ROLE_META[roleForSlug(slug)];
+  return {
+    displayName: profile.displayName || slug,
+    tag: meta.label.replace(/s$/, ""),
+    tierName: meta.label,
+    tierColor: meta.color,
+    tierEmoji: meta.emoji
+  };
 }
 
 export function generateMetadata({ params }: { params: { slug: string } }) {
