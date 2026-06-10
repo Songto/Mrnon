@@ -303,12 +303,12 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                     {items.map((it) => (
                       <div
                         key={it.label}
-                        className="rounded-2xl px-3.5 py-3 text-center"
-                        style={{ background: `${accent}14` }}
-                        title={it.label}
+                        className="rounded-2xl bg-cocoa/[0.05] px-3.5 py-2.5 text-center"
                       >
-                        <div className="text-lg leading-none">{it.icon}</div>
-                        <p className="mt-1.5 break-words text-sm font-display [overflow-wrap:anywhere]">
+                        <p className="mb-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cocoa-soft">
+                          <span className="text-sm">{it.icon}</span> {it.label}
+                        </p>
+                        <p className="break-words text-sm font-display [overflow-wrap:anywhere]">
                           {it.value}
                         </p>
                       </div>
