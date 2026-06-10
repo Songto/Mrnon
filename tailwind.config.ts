@@ -32,8 +32,10 @@ const config: Config = {
         body: ["var(--font-body)", "ui-rounded", "system-ui", "sans-serif"]
       },
       boxShadow: {
-        cozy: "0 10px 26px -10px rgba(214, 150, 120, 0.4)",
-        "cozy-lg": "0 20px 50px -14px rgba(214, 140, 120, 0.45)",
+        // layered: a tight contact shadow + a soft warm halo, so cards lift
+        // clearly off the cream background
+        cozy: "0 2px 5px rgba(193, 124, 90, 0.16), 0 12px 30px -10px rgba(193, 124, 90, 0.5)",
+        "cozy-lg": "0 3px 8px rgba(193, 124, 90, 0.2), 0 22px 54px -14px rgba(193, 124, 90, 0.55)",
         glow: "0 0 26px -4px rgba(255, 126, 155, 0.5)"
       },
       borderRadius: {

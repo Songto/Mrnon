@@ -296,26 +296,42 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               </div>
             </div>
 
-            {/* name + one role pill, below the avatar */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <h1
-                className="text-2xl font-bold [overflow-wrap:anywhere]"
-                style={{ color: profile?.nameColor || "#3E2C1B" }}
-              >
-                {profile?.displayName || fallback.displayName}
-              </h1>
-              <span
-                className="rounded-full px-2.5 py-0.5 text-xs font-bold text-night"
-                style={{ background: accent }}
-              >
-                {fallback.tierEmoji} {fallback.tierName}
-              </span>
-              {/* advanced badges earned by this member */}
-              {earnedBadges.map((b) => (
-                <span key={b.id} title={`${b.name} — ${b.description}`} className="inline-flex">
-                  <BadgeArt id={b.id as AdvancedBadgeId} size={28} title={b.name} />
+            {/* name + role pill on the left, badge case on the right */}
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1
+                  className="text-2xl font-bold [overflow-wrap:anywhere]"
+                  style={{ color: profile?.nameColor || "#3E2C1B" }}
+                >
+                  {profile?.displayName || fallback.displayName}
+                </h1>
+                <span
+                  className="rounded-full px-2.5 py-0.5 text-xs font-bold text-night"
+                  style={{ background: accent }}
+                >
+                  {fallback.tierEmoji} {fallback.tierName}
                 </span>
-              ))}
+              </div>
+
+              {/* badge case — earned medallions in a golden display strip */}
+              {earnedBadges.length > 0 && (
+                <div className="flex items-center gap-2 rounded-2xl border border-honey/60 bg-gradient-to-b from-[#FFFBEF] to-honey/25 px-3 py-1.5 shadow-cozy">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-cocoa-soft">
+                    Badges
+                  </span>
+                  {earnedBadges.map((b, i) => (
+                    <span
+                      key={b.id}
+                      title={`${b.name} — ${b.description}`}
+                      className="inline-flex cursor-help transition-transform duration-200 hover:scale-125"
+                    >
+                      <span className="badge-float inline-flex" style={{ animationDelay: `${i * 0.45}s` }}>
+                        <BadgeArt id={b.id as AdvancedBadgeId} size={36} title={b.name} />
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* admin-only: grant/revoke the special badges */}

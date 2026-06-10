@@ -73,7 +73,7 @@ export default function HomePage() {
             <Link
               key={f.href}
               href={f.href}
-              className="group relative flex flex-col overflow-hidden rounded-cozy border border-white/60 p-5 shadow-cozy transition hover:-translate-y-1 hover:shadow-cozy-lg"
+              className="group relative flex flex-col overflow-hidden rounded-cozy border border-rose/40 p-5 shadow-cozy transition hover:-translate-y-1 hover:shadow-cozy-lg"
               style={{ background: `linear-gradient(160deg, ${f.tint}, #FFFFFF 75%)` }}
             >
               {/* faint emoji watermark */}

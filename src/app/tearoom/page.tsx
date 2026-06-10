@@ -7,7 +7,7 @@ export default function TearoomPage() {
     <div className="space-y-5">
       {/* cozy header banner */}
       <div
-        className="relative overflow-hidden rounded-cozy border border-white/60 p-6 shadow-cozy sm:p-7"
+        className="relative overflow-hidden rounded-cozy border border-rose/40 p-6 shadow-cozy sm:p-7"
         style={{ background: "linear-gradient(135deg,#FFE3EC,#E5DEFF 60%,#DDEBFF)" }}
       >
         <span className="pointer-events-none absolute -right-3 -top-4 text-8xl opacity-15">🫖</span>
