@@ -65,6 +65,7 @@ export type ProfileRecord = {
   lookingFor?: string;
   vibe?: string;
   cardBlurb?: string; // short status shown on the member mini-card
+  motto?: string; // the member's motto, shown in the card's motto box
   role?: "admin" | "moderator" | "member";
   accent: string;
   avatarUrl?: string;
@@ -480,6 +481,7 @@ export type MemberCard = {
   bannerPos?: string;
   tagline?: string;
   cardBlurb?: string;
+  motto?: string;
   region?: string;
   vibe?: string;
   storedRole?: "admin" | "moderator" | "member";
@@ -502,6 +504,7 @@ export function listMembers(): MemberCard[] {
       bannerPos: p.bannerPos,
       tagline: p.tagline,
       cardBlurb: p.cardBlurb,
+      motto: p.motto,
       region: p.region,
       vibe: p.vibe,
       storedRole: p.role,
@@ -513,7 +516,7 @@ export function listMembers(): MemberCard[] {
 // Plain text/string fields that get length-capped to 600 chars on save.
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
-  "favoriteGames", "lookingFor", "vibe", "cardBlurb", "accent", "bannerId",
+  "favoriteGames", "lookingFor", "vibe", "cardBlurb", "motto", "accent", "bannerId",
   "backgroundId", "discord", "twitch",
   "avatarPos", "bannerFit", "bannerPos", "backgroundFit", "backgroundPos"
 ];

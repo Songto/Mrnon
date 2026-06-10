@@ -8,6 +8,7 @@ export function MemberMiniCard({ member }: { member: MemberCard }) {
   const role = roleForSlug(member.slug, member.storedRole);
   const meta = ROLE_META[role];
   const accent = member.accent || "#FF7E9B";
+  const motto = member.motto || member.cardBlurb || member.tagline;
   const chips = [member.region && `🌍 ${member.region}`, member.vibe && `✨ ${member.vibe}`].filter(
     Boolean
   ) as string[];
@@ -15,11 +16,11 @@ export function MemberMiniCard({ member }: { member: MemberCard }) {
   return (
     <Link
       href={`/members/${member.slug}`}
-      className="group block overflow-hidden rounded-cozy border border-cocoa/10 bg-surface/80 shadow-cozy transition hover:-translate-y-1 hover:shadow-cozy-lg"
+      className="group block overflow-hidden rounded-cozy border border-cocoa/10 bg-surface/80 text-center shadow-cozy transition hover:-translate-y-1 hover:shadow-cozy-lg"
     >
-      {/* mini banner */}
+      {/* banner */}
       <div
-        className="h-14 w-full"
+        className="h-20 w-full"
         style={{
           background: bannerCss(
             member.bannerId || "berry",
@@ -29,31 +30,41 @@ export function MemberMiniCard({ member }: { member: MemberCard }) {
           )
         }}
       />
+
       <div className="px-4 pb-4">
-        <div className="-mt-7 flex items-end gap-2">
+        {/* avatar centered, overlapping the banner */}
+        <div className="-mt-10 flex justify-center">
           <div className="rounded-full ring-4 ring-surface">
-            <Avatar name={member.displayName} src={member.avatarUrl} size={52} />
+            <Avatar name={member.displayName} src={member.avatarUrl} size={72} />
           </div>
-          <span
-            className="mb-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-night"
-            style={{ background: meta.color }}
-            title={meta.label}
-          >
-            {meta.emoji} {meta.label.replace(/s$/, "")}
-          </span>
         </div>
 
-        <h3 className="mt-2 flex items-center gap-1 truncate font-display text-base group-hover:underline">
+        {/* name + role */}
+        <h3 className="mt-2 truncate font-display text-lg group-hover:underline">
           {member.displayName}
         </h3>
-        {(member.cardBlurb || member.tagline) && (
-          <p className="truncate text-xs" style={{ color: accent }}>
-            {member.cardBlurb || `“${member.tagline}”`}
-          </p>
+        <span
+          className="mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold text-night"
+          style={{ background: meta.color }}
+        >
+          {meta.emoji} {meta.label.replace(/s$/, "")}
+        </span>
+
+        {/* motto box */}
+        {motto && (
+          <div
+            className="mt-3 rounded-2xl px-3 py-2.5"
+            style={{ background: `${accent}1a`, border: `1px solid ${accent}33` }}
+          >
+            <p className="break-words text-sm font-display [overflow-wrap:anywhere]" style={{ color: accent }}>
+              “{motto}”
+            </p>
+          </div>
         )}
 
+        {/* chips */}
         {chips.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap justify-center gap-1.5">
             {chips.map((c) => (
               <span key={c} className="rounded-full bg-cocoa/5 px-2 py-0.5 text-[11px] text-cocoa-soft">
                 {c}

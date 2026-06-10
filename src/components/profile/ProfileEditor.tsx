@@ -32,6 +32,7 @@ type Form = {
   favoriteGames: string;
   lookingFor: string;
   cardBlurb: string;
+  motto: string;
   discord: string;
   twitch: string;
   musicUrl: string;
@@ -61,6 +62,7 @@ const EMPTY: Form = {
   favoriteGames: "",
   lookingFor: "",
   cardBlurb: "",
+  motto: "",
   discord: "",
   twitch: "",
   musicUrl: "",
@@ -267,25 +269,40 @@ export function ProfileEditor() {
           {/* Members card */}
           <div>
             <p className="mb-2 text-xs font-display text-cocoa-soft">Members-page card 🪪</p>
-            {/* mini card preview */}
-            <div className="mb-2 max-w-[220px] overflow-hidden rounded-cozy border border-cocoa/10 bg-surface shadow-cozy">
-              <div className="h-10 w-full" style={{ background: bannerCss(form.bannerId, form.bannerUrl, form.bannerFit, form.bannerPos) }} />
+            {/* mini card preview — matches the real card layout */}
+            <div className="mb-3 max-w-[220px] overflow-hidden rounded-cozy border border-cocoa/10 bg-surface text-center shadow-cozy">
+              <div className="h-14 w-full" style={{ background: bannerCss(form.bannerId, form.bannerUrl, form.bannerFit, form.bannerPos) }} />
               <div className="px-3 pb-3">
-                <div className="-mt-5 rounded-full ring-4 ring-surface" style={{ width: "fit-content" }}>
-                  <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={40} />
+                <div className="-mt-7 flex justify-center">
+                  <div className="rounded-full ring-4 ring-surface">
+                    <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={52} />
+                  </div>
                 </div>
                 <p className="mt-1 font-display text-sm">{form.displayName || identity.name}</p>
-                <p className="truncate text-[11px]" style={{ color: form.accent }}>
-                  {form.cardBlurb || (form.tagline ? `“${form.tagline}”` : "your status here…")}
-                </p>
+                <div
+                  className="mt-2 rounded-2xl px-2 py-1.5"
+                  style={{ background: `${form.accent}1a`, border: `1px solid ${form.accent}33` }}
+                >
+                  <p className="truncate text-[11px]" style={{ color: form.accent }}>
+                    “{form.motto || form.cardBlurb || form.tagline || "your motto here…"}”
+                  </p>
+                </div>
               </div>
             </div>
             <Field
-              label=""
+              label="Motto"
+              value={form.motto}
+              onChange={(v) => set("motto", v)}
+              placeholder="Your motto — e.g. tea first, quests later 🫖"
+              hint="Shown in the motto box on your members-page card."
+              maxLength={90}
+            />
+            <Field
+              label="Card status (optional)"
               value={form.cardBlurb}
               onChange={(v) => set("cardBlurb", v)}
-              placeholder="Short status for your card — e.g. grinding ranked! 🎮"
-              hint="Shows on your card on the Members page (falls back to your tagline)."
+              placeholder="A short status — e.g. grinding ranked! 🎮"
+              hint="Used if you leave the motto empty."
             />
           </div>
 
