@@ -6,6 +6,8 @@
 import { useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { clsx } from "@/lib/clsx";
+import { BadgeArt } from "@/components/ui/BadgeArt";
+import type { AdvancedBadgeId } from "@/lib/badges";
 
 type Quest = {
   id: string;
@@ -63,7 +65,12 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
                   : "border-cocoa/10 bg-surface/40 opacity-60 grayscale"
               )}
             >
-              <span className={clsx("text-3xl", b.earned && "animate-float-slow")}>{b.emoji}</span>
+              <BadgeArt
+                id={b.id as AdvancedBadgeId}
+                size={56}
+                title={b.name}
+                className={clsx(b.earned && "animate-float-slow")}
+              />
               <p className="mt-1 text-sm font-display">{b.name}</p>
               <p className="text-[10px] leading-tight text-cocoa-soft">
                 {b.locked

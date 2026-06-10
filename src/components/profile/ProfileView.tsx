@@ -6,6 +6,8 @@ import { useIdentity } from "@/lib/identity";
 import { memberSlug } from "@/lib/members";
 import { ADMIN_SLUGS } from "@/lib/roles";
 import { clsx } from "@/lib/clsx";
+import { BadgeArt } from "@/components/ui/BadgeArt";
+import type { AdvancedBadgeId } from "@/lib/badges";
 import { backgroundCss, bannerCss, type ImageFit } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
@@ -310,12 +312,8 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               </span>
               {/* advanced badges earned by this member */}
               {earnedBadges.map((b) => (
-                <span
-                  key={b.id}
-                  title={`${b.name} — ${b.description}`}
-                  className="rounded-full border border-honey/70 bg-gradient-to-b from-surface to-honey/30 px-2 py-0.5 text-sm shadow-cozy"
-                >
-                  {b.emoji}
+                <span key={b.id} title={`${b.name} — ${b.description}`} className="inline-flex">
+                  <BadgeArt id={b.id as AdvancedBadgeId} size={28} title={b.name} />
                 </span>
               ))}
             </div>
