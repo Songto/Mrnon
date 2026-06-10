@@ -1,18 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import type { Tea } from "@/lib/tea";
+import { useEffect, useState } from "react";
+import { todayKey, type Tea } from "@/lib/tea";
 import { CozyButton } from "./ui/CozyButton";
+
+const COOKIE_KEY = "ourchat:cookie";
 
 export function TeaOfTheDay({ initialTea }: { initialTea: Tea }) {
   const [fortune, setFortune] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
+  const [crackedToday, setCrackedToday] = useState(false);
+
+  // One crack per day per person — remember today's fortune if already cracked.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(COOKIE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.day === todayKey()) {
+          setFortune(saved.fortune);
+          setCrackedToday(true);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const draw = async () => {
+    if (crackedToday) return;
     setDrawing(true);
     try {
       const r = await fetch("/api/tea?fortune=1").then((res) => res.json());
       setFortune(r.fortune);
+      setCrackedToday(true);
+      try {
+        localStorage.setItem(COOKIE_KEY, JSON.stringify({ day: todayKey(), fortune: r.fortune }));
+      } catch {
+        /* ignore */
+      }
     } finally {
       setDrawing(false);
     }
@@ -50,9 +76,15 @@ export function TeaOfTheDay({ initialTea }: { initialTea: Tea }) {
           </p>
         )}
         <div className="mt-3 flex justify-center">
-          <CozyButton variant="soft" onClick={draw} disabled={drawing} className="text-sm">
-            {drawing ? "Cracking…" : fortune ? "Draw another 🥠" : "Crack a cookie 🥠"}
-          </CozyButton>
+          {crackedToday ? (
+            <span className="text-xs text-cocoa-soft">
+              That&apos;s your cookie for today — come back tomorrow 🌙
+            </span>
+          ) : (
+            <CozyButton variant="soft" onClick={draw} disabled={drawing} className="text-sm">
+              {drawing ? "Cracking…" : "Crack a cookie 🥠"}
+            </CozyButton>
+          )}
         </div>
       </div>
     </div>

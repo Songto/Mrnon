@@ -79,6 +79,10 @@ app.prepare().then(() => {
 
     const broadcastLounge = () => io.emit("lounge", onlineUsers());
 
+    // Tell the freshly-connected client who's online right now (e.g. the
+    // homepage "top members" widget needs this without joining a room).
+    socket.emit("lounge", onlineUsers());
+
     socket.on(
       "join",
       (payload: { room: string; userId: string; name: string; avatar?: string }) => {

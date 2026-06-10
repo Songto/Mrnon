@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { teaOfTheDay } from "@/lib/tea";
-import { DiscordWidget } from "@/components/DiscordWidget";
+import { TopMembers } from "@/components/TopMembers";
 import { TeaOfTheDay } from "@/components/TeaOfTheDay";
 import { CozyLinkButton } from "@/components/ui/CozyButton";
 
@@ -9,19 +9,22 @@ const FEATURES = [
     href: "/tearoom",
     emoji: "💬",
     title: "Live chat",
-    text: "Hang out in the public lobby, or open a private room with a code just for your friends."
+    text: "Hang out in the public lobby, or open a private room with a code just for your friends.",
+    tint: "#FFD9E8"
   },
   {
     href: "/members",
     emoji: "🪪",
     title: "Meet the members",
-    text: "From Householders to Inner Members — see everyone's place at the table and who's online."
+    text: "See everyone who's pulled up a chair — their cards, mottos, and who's online right now.",
+    tint: "#DDF0D6"
   },
   {
     href: "/feed",
     emoji: "🌷",
     title: "Find a friend",
-    text: "Post a 90-minute card when you're looking for someone to play with, and wave at new friends."
+    text: "Post a 90-minute card when you're looking for someone to play with, and wave at new friends.",
+    tint: "#E5DEFF"
   }
 ];
 
@@ -62,20 +65,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Discord + features */}
+      {/* Top members + features */}
       <section className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <DiscordWidget />
+        <TopMembers />
         <div className="grid gap-4 sm:grid-cols-3">
           {FEATURES.map((f) => (
             <Link
               key={f.href}
               href={f.href}
-              className="cozy-card group flex flex-col p-5 transition hover:-translate-y-1 hover:shadow-cozy-lg"
+              className="group relative flex flex-col overflow-hidden rounded-cozy border border-white/60 p-5 shadow-cozy transition hover:-translate-y-1 hover:shadow-cozy-lg"
+              style={{ background: `linear-gradient(160deg, ${f.tint}, #FFFFFF 75%)` }}
             >
-              <span className="text-4xl transition group-hover:animate-wiggle">{f.emoji}</span>
-              <h3 className="mt-3 text-lg">{f.title}</h3>
-              <p className="mt-1 text-sm text-cocoa-soft">{f.text}</p>
-              <span className="mt-auto pt-3 text-sm font-display text-rose-deep">
+              {/* faint emoji watermark */}
+              <span className="pointer-events-none absolute -bottom-3 -right-2 text-7xl opacity-10">
+                {f.emoji}
+              </span>
+              <span className="relative text-4xl transition group-hover:animate-wiggle">{f.emoji}</span>
+              <h3 className="relative mt-3 text-lg">{f.title}</h3>
+              <p className="relative mt-1 text-sm text-cocoa-soft">{f.text}</p>
+              <span className="relative mt-auto pt-3 text-sm font-display text-rose-deep">
                 Explore →
               </span>
             </Link>

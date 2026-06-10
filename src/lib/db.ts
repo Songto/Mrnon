@@ -515,6 +515,39 @@ export function listMembers(): MemberCard[] {
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
 
+export type TopMember = {
+  slug: string;
+  displayName: string;
+  avatarUrl?: string;
+  accent: string;
+  ownerId: string;
+  score: number;
+};
+
+// Registered members ranked by how much time they spend here (a proxy from
+// their activity record: days visited, messages, watering). For the homepage.
+export function listTopMembers(limit = 16): TopMember[] {
+  const db = read();
+  return Object.values(db.profiles)
+    .filter((p) => p.ownerId)
+    .map((p) => {
+      const u = db.users[p.ownerId as string];
+      const score = u
+        ? u.visitDays.length * 5 + u.messages + u.waterReceived * 2 + u.eventsAttended * 3
+        : 0;
+      return {
+        slug: p.slug,
+        displayName: p.displayName,
+        avatarUrl: p.avatarUrl,
+        accent: p.accent,
+        ownerId: p.ownerId as string,
+        score
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
 // Plain text/string fields that get length-capped to 600 chars on save.
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",

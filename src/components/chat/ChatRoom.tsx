@@ -262,7 +262,14 @@ export function ChatRoom() {
           </span>
         </div>
 
-        <div ref={scrollRef} className="chat-scroll flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div
+          ref={scrollRef}
+          className="chat-scroll flex-1 space-y-3 overflow-y-auto px-5 py-4"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 12% 8%, rgba(255,179,199,0.16), transparent 40%), radial-gradient(circle at 88% 92%, rgba(201,160,255,0.14), transparent 42%)"
+          }}
+        >
           {messages.length === 0 && (
             <p className="mt-10 text-center text-sm text-cocoa-soft">
               {isPrivate
