@@ -31,6 +31,7 @@ type Form = {
   vibe: string;
   favoriteGames: string;
   lookingFor: string;
+  cardBlurb: string;
   discord: string;
   twitch: string;
   musicUrl: string;
@@ -59,6 +60,7 @@ const EMPTY: Form = {
   vibe: "",
   favoriteGames: "",
   lookingFor: "",
+  cardBlurb: "",
   discord: "",
   twitch: "",
   musicUrl: "",
@@ -256,6 +258,31 @@ export function ProfileEditor() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Members card */}
+          <div>
+            <p className="mb-2 text-xs font-display text-cocoa-soft">Members-page card 🪪</p>
+            {/* mini card preview */}
+            <div className="mb-2 max-w-[220px] overflow-hidden rounded-cozy border border-cocoa/10 bg-surface shadow-cozy">
+              <div className="h-10 w-full" style={{ background: bannerCss(form.bannerId, form.bannerUrl, form.bannerFit, form.bannerPos) }} />
+              <div className="px-3 pb-3">
+                <div className="-mt-5 rounded-full ring-4 ring-surface" style={{ width: "fit-content" }}>
+                  <Avatar name={form.displayName || identity.name} src={form.avatarUrl || undefined} size={40} />
+                </div>
+                <p className="mt-1 font-display text-sm">{form.displayName || identity.name}</p>
+                <p className="truncate text-[11px]" style={{ color: form.accent }}>
+                  {form.cardBlurb || (form.tagline ? `“${form.tagline}”` : "your status here…")}
+                </p>
+              </div>
+            </div>
+            <Field
+              label=""
+              value={form.cardBlurb}
+              onChange={(v) => set("cardBlurb", v)}
+              placeholder="Short status for your card — e.g. grinding ranked! 🎮"
+              hint="Shows on your card on the Members page (falls back to your tagline)."
+            />
           </div>
 
           {/* Banner */}

@@ -64,6 +64,8 @@ export type ProfileRecord = {
   favoriteGames?: string;
   lookingFor?: string;
   vibe?: string;
+  cardBlurb?: string; // short status shown on the member mini-card
+  role?: "admin" | "moderator" | "member";
   accent: string;
   avatarUrl?: string;
   avatarPos?: string;
@@ -467,10 +469,51 @@ export function getProfile(slug: string, displayName?: string): ProfileRecord {
   return defaultProfile(slug, displayName || slug);
 }
 
+export type MemberCard = {
+  slug: string;
+  displayName: string;
+  avatarUrl?: string;
+  accent: string;
+  bannerId: string;
+  bannerUrl?: string;
+  bannerFit?: string;
+  bannerPos?: string;
+  tagline?: string;
+  cardBlurb?: string;
+  region?: string;
+  vibe?: string;
+  storedRole?: "admin" | "moderator" | "member";
+  joinedAt: number;
+};
+
+// Registered website members = profiles someone has actually claimed/edited.
+export function listMembers(): MemberCard[] {
+  const db = read();
+  return Object.values(db.profiles)
+    .filter((p) => p.ownerId)
+    .map((p) => ({
+      slug: p.slug,
+      displayName: p.displayName,
+      avatarUrl: p.avatarUrl,
+      accent: p.accent,
+      bannerId: p.bannerId,
+      bannerUrl: p.bannerUrl,
+      bannerFit: p.bannerFit,
+      bannerPos: p.bannerPos,
+      tagline: p.tagline,
+      cardBlurb: p.cardBlurb,
+      region: p.region,
+      vibe: p.vibe,
+      storedRole: p.role,
+      joinedAt: p.updatedAt
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
 // Plain text/string fields that get length-capped to 600 chars on save.
 const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
   "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
-  "favoriteGames", "lookingFor", "vibe", "accent", "bannerId",
+  "favoriteGames", "lookingFor", "vibe", "cardBlurb", "accent", "bannerId",
   "backgroundId", "discord", "twitch",
   "avatarPos", "bannerFit", "bannerPos", "backgroundFit", "backgroundPos"
 ];
@@ -522,6 +565,9 @@ export function saveProfile(
   }
   if (patch.showcaseStyle === "grid" || patch.showcaseStyle === "full") {
     base.showcaseStyle = patch.showcaseStyle;
+  }
+  if (patch.role === "admin" || patch.role === "moderator" || patch.role === "member") {
+    base.role = patch.role;
   }
   // Steam-style showcases: validate, cap counts/sizes.
   if (Array.isArray(patch.showcases)) {
