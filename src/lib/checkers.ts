@@ -51,15 +51,36 @@ function jumpsFrom(board: Board, i: number): Move[] {
   const [r, c] = rc(i);
   const out: Move[] = [];
   for (const [dr, dc] of dirs(p)) {
-    const mr = r + dr,
-      mc = c + dc; // square jumped over
-    const tr = r + 2 * dr,
-      tc = c + 2 * dc; // landing
-    if (!inBounds(tr, tc)) continue;
-    const mid = board[idx(mr, mc)];
-    const land = board[idx(tr, tc)];
-    if (mid && mid.c === other(p.c) && !land) {
-      out.push({ from: i, to: idx(tr, tc), captured: idx(mr, mc) });
+    if (p.k) {
+      // Flying king: glide over empty squares to the first piece; if it's an
+      // enemy with empty square(s) beyond, capture it and land anywhere past it.
+      let rr = r + dr,
+        cc = c + dc;
+      while (inBounds(rr, cc) && !board[idx(rr, cc)]) {
+        rr += dr;
+        cc += dc;
+      }
+      if (!inBounds(rr, cc)) continue;
+      const mid = board[idx(rr, cc)];
+      if (!mid || mid.c === p.c) continue; // own piece or edge — no capture
+      let lr = rr + dr,
+        lc = cc + dc;
+      while (inBounds(lr, lc) && !board[idx(lr, lc)]) {
+        out.push({ from: i, to: idx(lr, lc), captured: idx(rr, cc) });
+        lr += dr;
+        lc += dc;
+      }
+    } else {
+      const mr = r + dr,
+        mc = c + dc; // square jumped over
+      const tr = r + 2 * dr,
+        tc = c + 2 * dc; // landing
+      if (!inBounds(tr, tc)) continue;
+      const mid = board[idx(mr, mc)];
+      const land = board[idx(tr, tc)];
+      if (mid && mid.c === other(p.c) && !land) {
+        out.push({ from: i, to: idx(tr, tc), captured: idx(mr, mc) });
+      }
     }
   }
   return out;
@@ -71,10 +92,21 @@ function simpleFrom(board: Board, i: number): Move[] {
   const [r, c] = rc(i);
   const out: Move[] = [];
   for (const [dr, dc] of dirs(p)) {
-    const tr = r + dr,
-      tc = c + dc;
-    if (inBounds(tr, tc) && !board[idx(tr, tc)]) {
-      out.push({ from: i, to: idx(tr, tc), captured: null });
+    if (p.k) {
+      // Flying king: slide any number of empty squares diagonally.
+      let rr = r + dr,
+        cc = c + dc;
+      while (inBounds(rr, cc) && !board[idx(rr, cc)]) {
+        out.push({ from: i, to: idx(rr, cc), captured: null });
+        rr += dr;
+        cc += dc;
+      }
+    } else {
+      const tr = r + dr,
+        tc = c + dc;
+      if (inBounds(tr, tc) && !board[idx(tr, tc)]) {
+        out.push({ from: i, to: idx(tr, tc), captured: null });
+      }
     }
   }
   return out;
