@@ -16,10 +16,14 @@ import {
 export function ImageUpload({
   shape,
   defaultMax = 1080,
+  instant = false,
   onChange
 }: {
   shape: "banner" | "background" | "avatar";
   defaultMax?: number;
+  // instant = add the image immediately on pick (no resize-confirm step), so
+  // it can't be lost by forgetting to click "Use this image".
+  instant?: boolean;
   onChange: (dataUrl: string) => void;
 }) {
   const [pending, setPending] = useState<HTMLImageElement | null>(null);
@@ -51,11 +55,25 @@ export function ImageUpload({
     if (!f) return;
     if (isGif(f)) {
       readFileAsDataUrl(f).then((d) => {
+        if (instant) {
+          onChange(d); // gifs are used as-is
+          if (fileRef.current) fileRef.current.value = "";
+          return;
+        }
         setGifData(d);
         loadImageFromFile(f).then(setPending).catch(() => {});
       });
     } else {
-      loadImageFromFile(f).then(setPending).catch(() => {});
+      loadImageFromFile(f)
+        .then((img) => {
+          if (instant) {
+            onChange(resizeToDataUrl(img, defaultMax, 0.72));
+            if (fileRef.current) fileRef.current.value = "";
+            return;
+          }
+          setPending(img);
+        })
+        .catch(() => {});
     }
   };
 

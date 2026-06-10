@@ -108,7 +108,7 @@ app.prepare().then(() => {
 
     socket.on("message", (payload: { text: string }) => {
       if (!current) return;
-      const text = (payload?.text ?? "").toString().slice(0, 600).trim();
+      const text = (payload?.text ?? "").toString().slice(0, 300).trim();
       if (!text) return;
 
       const msg: ChatMessage = {

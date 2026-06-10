@@ -553,12 +553,14 @@ export function ProfileEditor() {
           </div>
 
           <label className="block">
-            <span className="mb-1 block text-xs font-display text-cocoa-soft">About me</span>
+            <span className="mb-1 block text-xs font-display text-cocoa-soft">
+              About me <span className="text-cocoa-soft/70">({form.bio.length}/300)</span>
+            </span>
             <textarea
               value={form.bio}
               onChange={(e) => set("bio", e.target.value)}
               rows={3}
-              maxLength={600}
+              maxLength={300}
               placeholder="Tell people who you are…"
               className="w-full rounded-2xl border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
             />

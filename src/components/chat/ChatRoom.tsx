@@ -313,7 +313,7 @@ export function ChatRoom() {
             onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder={`Message ${roomName}…`}
-            maxLength={600}
+            maxLength={300}
             className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none focus:border-strawberry"
           />
           <CozyButton onClick={send} disabled={!draft.trim()} className="px-5">

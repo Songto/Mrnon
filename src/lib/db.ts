@@ -550,7 +550,7 @@ export function saveProfile(
   for (const key of EDITABLE_FIELDS) {
     if (key in patch && patch[key] !== undefined) {
       // @ts-expect-error indexed assignment across a union of string fields
-      base[key] = typeof patch[key] === "string" ? (patch[key] as string).slice(0, 600) : patch[key];
+      base[key] = typeof patch[key] === "string" ? (patch[key] as string).slice(0, 320) : patch[key];
     }
   }
   // Banner/background/music URLs: accept long values (data URLs), size-capped.
@@ -584,7 +584,7 @@ export function saveProfile(
         id: typeof s.id === "string" ? s.id : `sc-${Math.random().toString(36).slice(2, 8)}`,
         type: s.type,
         title: (s.title || "").slice(0, 60),
-        text: typeof s.text === "string" ? s.text.slice(0, 1200) : undefined,
+        text: typeof s.text === "string" ? s.text.slice(0, 500) : undefined,
         images: Array.isArray(s.images)
           ? s.images
               .filter((im) => im && typeof im.url === "string" && im.url.length <= MAX_PHOTO_BYTES)

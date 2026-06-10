@@ -99,7 +99,7 @@ export function ShowcaseManager({
                 value={sc.text || ""}
                 onChange={(e) => update(sc.id, { text: e.target.value })}
                 rows={3}
-                maxLength={1200}
+                maxLength={500}
                 placeholder="Write anything — your story, your setup, your fav games…"
                 className="mt-2 w-full rounded-xl border border-cocoa/10 bg-surface px-3 py-2 text-sm outline-none [overflow-wrap:anywhere] focus:border-strawberry"
               />
@@ -129,6 +129,7 @@ export function ShowcaseManager({
                 <ImageUpload
                   shape="background"
                   defaultMax={1080}
+                  instant
                   onChange={(url) =>
                     update(sc.id, { images: [...(sc.images || []), { url }] })
                   }
@@ -159,6 +160,7 @@ export function ShowcaseManager({
                   <ImageUpload
                     shape="background"
                     defaultMax={1280}
+                    instant
                     onChange={(url) => update(sc.id, { images: [{ url, pos: "50% 50%" }] })}
                   />
                 )}

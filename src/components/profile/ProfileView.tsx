@@ -200,41 +200,13 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
             }}
           />
           <div className="px-5 pb-5">
-            <div className="-mt-12 flex flex-wrap items-end justify-between gap-3">
-              <div className="flex items-end gap-3">
-                <div
-                  className="rounded-full ring-4"
-                  style={{ ["--tw-ring-color" as string]: profile?.avatarRing || accent }}
-                >
-                  <Avatar name={fallback.displayName} src={profile?.avatarUrl} size={88} />
-                </div>
-                <div className="pb-1">
-                  <h1
-                    className="flex items-center gap-2 text-2xl font-bold"
-                    style={{
-                      color: profile?.nameColor || "#3E2C1B",
-                      textShadow: "0 1px 3px rgba(255,255,255,0.6)"
-                    }}
-                  >
-                    {profile?.displayName || fallback.displayName}
-                    {fallback.tag && (
-                      <span
-                        className="rounded-md px-1.5 py-0.5 text-[11px] font-bold text-night"
-                        style={{ background: accent, textShadow: "none" }}
-                      >
-                        {fallback.tag}
-                      </span>
-                    )}
-                  </h1>
-                  <span className="text-sm font-display" style={{ color: accent }}>
-                    {fallback.tierEmoji} {fallback.tierName}
-                  </span>
-                  {profile?.motto && (
-                    <p className="mt-0.5 text-sm italic text-cocoa-soft [overflow-wrap:anywhere]">
-                      “{profile.motto}”
-                    </p>
-                  )}
-                </div>
+            {/* avatar (overlapping banner) + action buttons */}
+            <div className="-mt-12 flex items-end justify-between gap-3">
+              <div
+                className="rounded-full ring-4"
+                style={{ ["--tw-ring-color" as string]: profile?.avatarRing || accent }}
+              >
+                <Avatar name={fallback.displayName} src={profile?.avatarUrl} size={88} />
               </div>
               <div className="flex flex-wrap items-center gap-2 pb-1">
                 <ProfileMusic url={profile?.musicUrl} accent={accent} />
@@ -258,8 +230,24 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               </div>
             </div>
 
+            {/* name + one role pill, below the avatar */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <h1
+                className="text-2xl font-bold [overflow-wrap:anywhere]"
+                style={{ color: profile?.nameColor || "#3E2C1B" }}
+              >
+                {profile?.displayName || fallback.displayName}
+              </h1>
+              <span
+                className="rounded-full px-2.5 py-0.5 text-xs font-bold text-night"
+                style={{ background: accent }}
+              >
+                {fallback.tierEmoji} {fallback.tierName}
+              </span>
+            </div>
+
             {profile?.tagline && (
-              <p className="mt-3 break-words font-display text-lg [overflow-wrap:anywhere]" style={{ color: accent }}>
+              <p className="mt-2 break-words font-display text-lg [overflow-wrap:anywhere]" style={{ color: accent }}>
                 “{profile.tagline}”
               </p>
             )}
@@ -285,12 +273,17 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           ];
           if (items.length === 0 && !isOwner) return null;
           return (
-            <div className="cozy-card overflow-hidden p-0">
-              <div className="h-1.5 w-full" style={{ background: accent }} />
-              <div className="p-4 sm:p-5">
-                <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-cocoa-soft">
+            <div className="cozy-card p-4 sm:p-5">
+              <div className="p-0">
+                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-cocoa-soft">
                   About {profile?.displayName || fallback.displayName}
                 </h2>
+                {profile?.motto && (
+                  <p className="mb-3 mt-1 break-words text-sm italic text-cocoa [overflow-wrap:anywhere]">
+                    “{profile.motto}”
+                  </p>
+                )}
+                {!profile?.motto && <div className="mb-3" />}
                 {items.length === 0 ? (
                   <p className="text-sm text-cocoa-soft">
                     Nothing here yet — tap Customize to add your details. 🌷
@@ -345,7 +338,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               placeholder={
                 identity ? `Leave a kind word for ${fallback.displayName}…` : "Pull up a chair to comment…"
               }
-              maxLength={500}
+              maxLength={300}
               className="flex-1 rounded-full border border-cocoa/10 bg-surface/80 px-4 py-2.5 text-sm outline-none focus:border-strawberry"
             />
             <CozyButton onClick={sendComment} disabled={sending} className="px-5">
