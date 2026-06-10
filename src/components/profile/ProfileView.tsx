@@ -286,10 +286,10 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                     {items.map((it) => (
                       <div
                         key={it.label}
-                        className="rounded-2xl px-3.5 py-2.5"
+                        className="rounded-2xl px-3.5 py-2.5 text-center"
                         style={{ background: `${accent}14` }}
                       >
-                        <p className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cocoa-soft">
+                        <p className="mb-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cocoa-soft">
                           <span className="text-sm">{it.icon}</span> {it.label}
                         </p>
                         <p className="break-words text-sm font-display [overflow-wrap:anywhere]">

@@ -165,7 +165,8 @@ export function ProfileEditor() {
             Object.keys(EMPTY).map((k) => [k, (p as Record<string, unknown>)[k] ?? EMPTY[k as keyof Form]])
           ),
           displayName: p.displayName || identity.name,
-          showcases
+          showcases,
+          photos: [] // legacy photos are migrated into showcases; clear them on save
         } as Form);
         setLoaded(true);
       })
