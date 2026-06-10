@@ -9,13 +9,13 @@ const config: Config = {
     extend: {
       colors: {
         // Warm & cute "strawberry teaparty" palette — soft pastels, sunny cream
-        night: "#5A4636", // warm dark brown (text on bright accents, soft tints)
+        night: "#41301F", // warm dark brown (text on bright accents, soft tints)
         cream: "#FFF4E9", // sunny base page background
         parchment: "#FBE7D4", // slightly deeper warm tint
         surface: "#FFFFFF", // cards / panels (used translucent for a soft glass look)
         "surface-soft": "#FFF0E2",
-        cocoa: "#5A4636", // primary text (warm brown on cream)
-        "cocoa-soft": "#9C8675", // muted text
+        cocoa: "#3E2C1B", // primary text (deep warm brown — strong contrast)
+        "cocoa-soft": "#6E5645", // muted text (still clearly readable)
         strawberry: "#FF7E9B",
         "strawberry-deep": "#FF6385",
         rose: "#FFB3C7",

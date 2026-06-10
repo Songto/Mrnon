@@ -238,8 +238,8 @@ export function FeedBoard() {
                 className="rounded-full px-2.5 py-1 text-xs font-display transition"
                 style={
                   vibe.label === v.label
-                    ? { background: v.accent, color: "#5A4636" }
-                    : { background: "rgba(90,70,54,0.07)", color: "#9C8675" }
+                    ? { background: v.accent, color: "#3E2C1B" }
+                    : { background: "rgba(90,70,54,0.07)", color: "#6E5645" }
                 }
               >
                 {v.emoji} {v.label}
@@ -400,8 +400,8 @@ export function FeedBoard() {
                         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-display transition active:scale-95"
                         style={
                           iWaved
-                            ? { background: p.accent, color: "#5A4636" }
-                            : { background: "rgba(90,70,54,0.07)", color: "#5A4636" }
+                            ? { background: p.accent, color: "#3E2C1B" }
+                            : { background: "rgba(90,70,54,0.07)", color: "#3E2C1B" }
                         }
                       >
                         <span className={iWaved ? "animate-wiggle" : ""}>👋</span>
