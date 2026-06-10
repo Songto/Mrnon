@@ -255,51 +255,54 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           </div>
         </div>
 
-        {/* Info panel — clean, Discord-style (uppercase labels, accent bar) — sits right under the banner */}
-        {(filledInfo.length > 0 || profile?.discord || profile?.twitch || isOwner) && (
-          <div className="cozy-card overflow-hidden p-0">
-            <div className="h-1.5 w-full" style={{ background: accent }} />
-            <div className="p-5">
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-cocoa-soft">
-                About {profile?.displayName || fallback.displayName}
-              </h2>
-              {filledInfo.length === 0 && !profile?.discord && !profile?.twitch ? (
-                <p className="text-sm text-cocoa-soft">
-                  Nothing here yet{isOwner ? " — tap Customize to add your details. 🌷" : "."}
-                </p>
-              ) : (
-                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                  {filledInfo.map((f) => (
-                    <div key={f.key}>
-                      <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cocoa-soft">
-                        {f.icon} {f.label}
-                      </p>
-                      <p className="break-words text-sm [overflow-wrap:anywhere]">
-                        {profile?.[f.key] as string}
-                      </p>
-                    </div>
-                  ))}
-                  {profile?.discord && (
-                    <div>
-                      <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cocoa-soft">
-                        💬 Discord
-                      </p>
-                      <p className="break-words text-sm [overflow-wrap:anywhere]">{profile.discord}</p>
-                    </div>
-                  )}
-                  {profile?.twitch && (
-                    <div>
-                      <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cocoa-soft">
-                        🟣 Twitch
-                      </p>
-                      <p className="break-words text-sm [overflow-wrap:anywhere]">{profile.twitch}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+        {/* Info panel — compact accent tiles that fill the row evenly */}
+        {(() => {
+          const items: { icon: string; label: string; value: string }[] = [
+            ...filledInfo.map((f) => ({
+              icon: f.icon,
+              label: f.label,
+              value: profile?.[f.key] as string
+            })),
+            ...(profile?.discord ? [{ icon: "💬", label: "Discord", value: profile.discord }] : []),
+            ...(profile?.twitch ? [{ icon: "🟣", label: "Twitch", value: profile.twitch }] : [])
+          ];
+          if (items.length === 0 && !isOwner) return null;
+          return (
+            <div className="cozy-card overflow-hidden p-0">
+              <div className="h-1.5 w-full" style={{ background: accent }} />
+              <div className="p-4 sm:p-5">
+                <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-cocoa-soft">
+                  About {profile?.displayName || fallback.displayName}
+                </h2>
+                {items.length === 0 ? (
+                  <p className="text-sm text-cocoa-soft">
+                    Nothing here yet — tap Customize to add your details. 🌷
+                  </p>
+                ) : (
+                  <div
+                    className="grid gap-2.5"
+                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
+                  >
+                    {items.map((it) => (
+                      <div
+                        key={it.label}
+                        className="rounded-2xl px-3.5 py-2.5"
+                        style={{ background: `${accent}14` }}
+                      >
+                        <p className="mb-0.5 flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cocoa-soft">
+                          <span className="text-sm">{it.icon}</span> {it.label}
+                        </p>
+                        <p className="break-words text-sm font-display [overflow-wrap:anywhere]">
+                          {it.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Showcases (Steam-style: About / Screenshots / Featured) */}
         {profile?.showcases && profile.showcases.length > 0 ? (
