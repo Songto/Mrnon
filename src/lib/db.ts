@@ -366,14 +366,23 @@ export function getUser(userId: string): UserRecord | undefined {
 
 export function listGarden() {
   const db = read();
+  // Only show registered members (people with a claimed profile), so stray
+  // one-off guests / private-room codes don't sprout plants in the garden.
+  const members = new Map(
+    Object.values(db.profiles)
+      .filter((p) => p.ownerId)
+      .map((p) => [p.ownerId as string, p])
+  );
   return Object.values(db.users)
+    .filter((u) => members.has(u.id))
     .map((u) => {
+      const prof = members.get(u.id);
       const score = growthScore(u);
       const { stage, progress } = stageFor(score);
       return {
         id: u.id,
-        name: u.name,
-        avatar: u.avatar,
+        name: prof?.displayName || u.name,
+        avatar: prof?.avatarUrl || u.avatar,
         score,
         stage: stage.key,
         stageLabel: stage.label,
