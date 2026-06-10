@@ -100,8 +100,13 @@ export function TopMembers() {
             })}
           </ul>
         )}
-        <CozyLinkButton href="/members" className="w-full">
-          Meet all the members 🪪
+        <CozyLinkButton
+          variant="discord"
+          href="https://discord.gg/sDgzXBNjx8"
+          external
+          className="w-full"
+        >
+          Join our Discord 💌
         </CozyLinkButton>
       </div>
     </div>
