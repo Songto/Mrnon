@@ -32,14 +32,15 @@ export function AmbiencePlayer() {
   const nodesRef = useRef<Partial<Record<Layer, { stop: () => void }>>>({});
   const chimeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restore saved prefs.
+  // Restore saved volume only. We deliberately don't restore which layers
+  // were "on": browsers can't auto-resume audio without a fresh gesture, so
+  // showing them as active would be a lie (and leave nothing to stop).
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
         if (typeof saved.volume === "number") setVolume(saved.volume);
-        if (saved.active) setActive((a) => ({ ...a, ...saved.active }));
       }
     } catch {
       /* ignore */
@@ -78,6 +79,9 @@ export function AmbiencePlayer() {
   }
 
   function startLayer(layer: Layer) {
+    // Idempotent: never stack two sources for the same layer (which would
+    // otherwise leave an untracked source that can't be stopped).
+    if (nodesRef.current[layer]) return;
     const ctx = ensureCtx();
     const master = masterRef.current!;
     if (layer === "rain") {
@@ -163,13 +167,14 @@ export function AmbiencePlayer() {
   }
 
   function toggle(layer: Layer) {
-    setActive((prev) => {
-      const next = { ...prev, [layer]: !prev[layer] };
-      if (next[layer]) startLayer(layer);
-      else stopLayer(layer);
-      persist(next, volume);
-      return next;
-    });
+    // Run the audio side-effect OUTSIDE the state updater. (Updaters must be
+    // pure — React may call them twice in dev, which would start two sources.)
+    const willBeOn = !active[layer];
+    if (willBeOn) startLayer(layer);
+    else stopLayer(layer);
+    const next = { ...active, [layer]: willBeOn };
+    setActive(next);
+    persist(next, volume);
   }
 
   function persist(a: Record<Layer, boolean>, v: number) {
