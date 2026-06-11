@@ -17,7 +17,21 @@ just point Render at the current branch).
    - **Start command:** `npm start`
    - **Plan:** Free
    - **Env var:** `NODE_VERSION = 20`  (do **not** set `NODE_ENV`)
-4. Click **Create**. First build takes a few minutes. You'll get a test URL
+4. Add the environment variables (Render → **Environment**). All optional for a
+   demo, but for the real site set:
+
+   | Variable | What it is |
+   |---|---|
+   | `DATABASE_URL` | Your Neon Postgres connection string (keeps profiles, badges, seeds, accounts across redeploys) |
+   | `NEXTAUTH_SECRET` | A random secret — `openssl rand -base64 32` |
+   | `NEXTAUTH_URL` | Your live URL, e.g. `https://ourchat.onrender.com` (update to your domain in step 3) |
+   | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | From the Discord developer portal |
+   | `DISCORD_GUILD_ID` | Your server's ID (for the live online widget) |
+   | `DISCORD_INVITE_URL` | Your invite link, e.g. `https://discord.gg/sDgzXBNjx8` |
+
+   Then in the **Discord developer portal → OAuth2 → Redirects**, add:
+   `https://<your-render-or-domain>/api/auth/callback/discord`.
+5. Click **Create**. First build takes a few minutes. You'll get a test URL
    like `https://ourchat.onrender.com` — open it to check everything works.
 
 > Free tier note: the service **sleeps after ~15 min idle**, so the first visit
@@ -40,13 +54,21 @@ Done — the site is live on your domain. 🎉
 ## 4. Updating later
 Just push to the deployed branch — Render **auto-redeploys**, same URL.
 
-## ⚠️ Data persistence (do before a serious launch)
-Member profiles, seeds, badges, likes, and chat are saved in `data/store.json`.
-On Render's free tier the filesystem is **ephemeral** — it resets on every
-redeploy/restart, so that data would be lost. To make it permanent, either:
-- attach a **Render Persistent Disk** mounted at `/opt/render/project/src/data`
-  (requires a paid instance), or
-- move the store to a small database (the code in `src/lib/db.ts` is structured
-  for an easy swap).
+## ✅ Data persistence
+Member profiles, seeds, badges, likes, accounts, and events persist to a
+**Neon Postgres** database when `DATABASE_URL` is set — so the data survives
+Render's free-tier redeploys and restarts (the filesystem there is ephemeral).
 
-Ask and this can be wired up.
+With **no** `DATABASE_URL` the app falls back to a local `data/store.json` file,
+which is fine for local dev but **resets on each redeploy** on free Render — so
+set `DATABASE_URL` for the live site.
+
+Live chat messages are intentionally in-memory only (last ~30 per room) and are
+not persisted.
+
+### Getting a free Neon database
+1. Sign up at https://neon.tech (free) → create a project.
+2. Copy the **connection string** (looks like
+   `postgresql://user:pass@ep-xxx.region.aws.neon.tech/dbname?sslmode=require`).
+3. Paste it as `DATABASE_URL` in Render. The app creates its own table on first
+   boot — nothing else to set up.
