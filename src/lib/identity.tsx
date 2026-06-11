@@ -71,7 +71,12 @@ export function IdentityProvider({
 
   const logout = useCallback(() => {
     if (session) {
-      signOut();
+      // Don't let NextAuth do the redirect — if NEXTAUTH_URL is misconfigured
+      // in production it would bounce the browser to a dead address. Clear the
+      // session, then navigate home ourselves on the current origin.
+      signOut({ redirect: false }).finally(() => {
+        window.location.href = "/";
+      });
       return;
     }
     setGuestNameState(null);
