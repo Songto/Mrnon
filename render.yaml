@@ -1,0 +1,18 @@
+# Render deployment for Ourchat (Next.js + custom Socket.IO server).
+# Create the service from the dashboard (New → Blueprint, pick this repo) or
+# set these values manually on a new Web Service.
+#
+# IMPORTANT: do NOT add NODE_ENV=production as an env var here. That would make
+# `npm install` skip devDependencies (tailwind/postcss/typescript) and break the
+# build. The start script sets NODE_ENV=production for runtime only.
+services:
+  - type: web
+    name: ourchat
+    runtime: node
+    plan: free
+    region: singapore # closest to SEA; options: oregon, frankfurt, singapore, ohio, virginia
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
