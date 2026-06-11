@@ -27,6 +27,22 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOST || "localhost";
 const port = parseInt(process.env.PORT || "3000", 10);
 
+// NextAuth needs NEXTAUTH_URL to build OAuth redirect URLs. If it isn't set
+// explicitly, fall back to the public URL the host provides automatically
+// (Render sets RENDER_EXTERNAL_URL). Without this, OAuth redirect_uri can
+// wrongly default to http://localhost:3000 in production.
+if (!process.env.NEXTAUTH_URL) {
+  const inferred =
+    process.env.RENDER_EXTERNAL_URL ||
+    (process.env.RENDER_EXTERNAL_HOSTNAME
+      ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+      : undefined);
+  if (inferred) {
+    process.env.NEXTAUTH_URL = inferred;
+    console.log(`🔐 NEXTAUTH_URL not set — using ${inferred}`);
+  }
+}
+
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
