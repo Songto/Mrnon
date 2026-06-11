@@ -256,6 +256,54 @@ export async function flushStore(): Promise<void> {
   if (USE_DB) await dbSaveNow().catch(() => {});
 }
 
+// A safe-to-expose snapshot of how persistence is doing (no secrets). Used by
+// /api/health so we can tell whether the live site is really saving to the DB.
+export async function storeStatus(): Promise<{
+  mode: "database" | "file";
+  databaseConfigured: boolean;
+  databaseConnected: boolean;
+  rowExists: boolean;
+  error?: string;
+  counts: { profiles: number; authUsers: number; users: number; events: number };
+}> {
+  const c = store.cache;
+  const counts = {
+    profiles: c ? Object.keys(c.profiles).length : 0,
+    authUsers: c ? Object.keys(c.authUsers).length : 0,
+    users: c ? Object.keys(c.users).length : 0,
+    events: c ? c.events.length : 0
+  };
+  if (!USE_DB) {
+    return {
+      mode: "file",
+      databaseConfigured: false,
+      databaseConnected: false,
+      rowExists: false,
+      counts
+    };
+  }
+  try {
+    const pg = await getPg();
+    const res = await pg!.query("SELECT count(*)::int AS rows FROM ourchat_store WHERE id = 1");
+    return {
+      mode: "database",
+      databaseConfigured: true,
+      databaseConnected: true,
+      rowExists: (res.rows[0]?.rows ?? 0) > 0,
+      counts
+    };
+  } catch (e) {
+    return {
+      mode: "file",
+      databaseConfigured: true,
+      databaseConnected: false,
+      error: (e as Error).message,
+      rowExists: false,
+      counts
+    };
+  }
+}
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
