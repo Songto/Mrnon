@@ -1,24 +1,23 @@
 "use client";
 
-// A floating cozy ambience mixer. All sounds are your own looping audio files
-// in /public/sounds/. Layer any of the six; the master volume controls them
-// all. State (volume) persists in localStorage; audio can't auto-resume, so
-// nothing plays until you tap a sound.
+// A floating cozy ambience mixer. Every sound is synthesized live in the
+// browser (Web Audio API) — no audio files to ship or lose. Layer any of the
+// six; the master volume controls them all. Volume persists in localStorage;
+// audio can't auto-start, so nothing plays until you tap a sound.
 
 import { useEffect, useRef, useState } from "react";
 import { clsx } from "@/lib/clsx";
+import { AMBIENCE, type AmbienceHandle } from "@/lib/ambience";
 
-type Sound = { key: string; label: string; emoji: string; src: string };
+type Sound = { key: string; label: string; emoji: string };
 
-// Up to six sounds. Rename labels/emojis and drop matching files in
-// public/sounds/ (e.g. rain.mp3). Add/remove rows freely (max 6 looks best).
 const SOUNDS: Sound[] = [
-  { key: "rain", label: "Rain", emoji: "🌧️", src: "/sounds/rain.mp3" },
-  { key: "fireplace", label: "Fireplace", emoji: "🔥", src: "/sounds/fireplace.mp3" },
-  { key: "chimes", label: "Chimes", emoji: "🎐", src: "/sounds/chimes.mp3" },
-  { key: "lofi", label: "Lofi", emoji: "🎶", src: "/sounds/lofi.mp3" },
-  { key: "cafe", label: "Café", emoji: "☕", src: "/sounds/cafe.mp3" },
-  { key: "forest", label: "Forest", emoji: "🌳", src: "/sounds/forest.mp3" }
+  { key: "rain", label: "Rain", emoji: "🌧️" },
+  { key: "fire", label: "Fireplace", emoji: "🔥" },
+  { key: "chimes", label: "Chimes", emoji: "🎐" },
+  { key: "waves", label: "Waves", emoji: "🌊" },
+  { key: "forest", label: "Forest", emoji: "🌳" },
+  { key: "night", label: "Night", emoji: "🌙" }
 ];
 
 const STORE_KEY = "ourchat:ambience";
@@ -27,8 +26,9 @@ export function AmbiencePlayer() {
   const [open, setOpen] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const [active, setActive] = useState<Record<string, boolean>>({});
-  const [missing, setMissing] = useState<Set<string>>(new Set());
-  const audiosRef = useRef<Record<string, HTMLAudioElement>>({});
+  const ctxRef = useRef<AudioContext | null>(null);
+  const masterRef = useRef<GainNode | null>(null);
+  const handlesRef = useRef<Record<string, AmbienceHandle>>({});
 
   // Restore saved volume only (audio can't auto-resume without a gesture).
   useEffect(() => {
@@ -43,28 +43,33 @@ export function AmbiencePlayer() {
     }
   }, []);
 
+  function ensureContext(): { ctx: AudioContext; master: GainNode } | null {
+    if (typeof window === "undefined") return null;
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return null;
+    if (!ctxRef.current) {
+      const ctx = new AC();
+      const master = ctx.createGain();
+      master.gain.value = volume;
+      master.connect(ctx.destination);
+      ctxRef.current = ctx;
+      masterRef.current = master;
+    }
+    if (ctxRef.current.state === "suspended") void ctxRef.current.resume();
+    return { ctx: ctxRef.current, master: masterRef.current! };
+  }
+
   function toggle(s: Sound) {
     const willBeOn = !active[s.key];
     if (willBeOn) {
-      const audio = new Audio(s.src);
-      audio.loop = true;
-      audio.volume = volume;
-      audio.onerror = () => {
-        setMissing((m) => new Set(m).add(s.key));
-        setActive((a) => ({ ...a, [s.key]: false }));
-        delete audiosRef.current[s.key];
-      };
-      audio.play().catch(() => {
-        /* decode / autoplay issue */
-      });
-      audiosRef.current[s.key] = audio;
-    } else {
-      const a = audiosRef.current[s.key];
-      if (a) {
-        a.pause();
-        a.src = "";
+      const audio = ensureContext();
+      const factory = AMBIENCE[s.key];
+      if (audio && factory) {
+        handlesRef.current[s.key] = factory(audio.ctx, audio.master);
       }
-      delete audiosRef.current[s.key];
+    } else {
+      handlesRef.current[s.key]?.stop();
+      delete handlesRef.current[s.key];
     }
     setActive((prev) => ({ ...prev, [s.key]: willBeOn }));
     try {
@@ -74,21 +79,19 @@ export function AmbiencePlayer() {
     }
   }
 
-  // Master volume → every active sound.
+  // Master volume → smoothly applied to everything.
   useEffect(() => {
-    Object.values(audiosRef.current).forEach((a) => {
-      a.volume = volume;
-    });
+    const master = masterRef.current;
+    const ctx = ctxRef.current;
+    if (master && ctx) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.05);
   }, [volume]);
 
-  // Pause everything on unmount.
+  // Stop everything on unmount.
   useEffect(() => {
-    const audios = audiosRef.current;
+    const handles = handlesRef.current;
     return () => {
-      Object.values(audios).forEach((a) => {
-        a.pause();
-        a.src = "";
-      });
+      Object.values(handles).forEach((h) => h.stop());
+      ctxRef.current?.close().catch(() => {});
     };
   }, []);
 
@@ -100,26 +103,22 @@ export function AmbiencePlayer() {
         <div className="mb-2 w-64 cozy-card animate-pop p-4">
           <p className="mb-2 font-display text-sm">Cozy ambience</p>
           <div className="grid grid-cols-3 gap-2">
-            {SOUNDS.map((s) => {
-              const isMissing = missing.has(s.key);
-              return (
-                <button
-                  key={s.key}
-                  onClick={() => toggle(s)}
-                  title={isMissing ? `Add public${s.src} to enable` : s.label}
-                  className={clsx(
-                    "flex flex-col items-center rounded-2xl px-2 py-2 text-[11px] transition",
-                    active[s.key]
-                      ? "bg-sage text-cocoa shadow-cozy"
-                      : "bg-cocoa/5 text-cocoa-soft hover:bg-cocoa/10",
-                    isMissing && "opacity-50"
-                  )}
-                >
-                  <span className="text-lg">{s.emoji}</span>
-                  {s.label}
-                </button>
-              );
-            })}
+            {SOUNDS.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => toggle(s)}
+                title={s.label}
+                className={clsx(
+                  "flex flex-col items-center rounded-2xl px-2 py-2 text-[11px] transition",
+                  active[s.key]
+                    ? "bg-sage text-cocoa shadow-cozy"
+                    : "bg-cocoa/5 text-cocoa-soft hover:bg-cocoa/10"
+                )}
+              >
+                <span className="text-lg">{s.emoji}</span>
+                {s.label}
+              </button>
+            ))}
           </div>
           <label className="mt-3 block text-xs text-cocoa-soft">Volume</label>
           <input
@@ -132,7 +131,7 @@ export function AmbiencePlayer() {
             className="w-full accent-rose-deep"
           />
           <p className="mt-2 text-[10px] text-cocoa-soft">
-            Drop your loops in <code>public/sounds/</code> (rain.mp3, fireplace.mp3, …).
+            Tap to layer sounds — they&apos;re woven live, just for you. 🫖
           </p>
         </div>
       )}
