@@ -1,0 +1,1180 @@
+// Tiny JSON-file-backed store. Chosen over a native DB so the app runs with
+// ZERO setup (no compilation, no migrations). It's a clean seam: swap the
+// read()/write() internals for SQLite/Postgres later without touching callers.
+
+import fs from "node:fs";
+import path from "node:path";
+import {
+  QUESTS,
+  ADVANCED_BADGES,
+  FAMOUS_LIKES,
+  allQuestsDone,
+  evaluateBadges,
+  questDone,
+  type UserStats
+} from "./badges";
+import { SEEDS, rollSeed, seedById } from "./seeds";
+
+export type UserRecord = {
+  id: string;
+  name: string;
+  avatar?: string;
+  messages: number;
+  nightMessages: number;
+  visitDays: string[]; // ISO date strings, deduped
+  eventsAttended: number;
+  eventsHosted: number;
+  wateredOthers: number;
+  waterReceived: number;
+  badges: string[];
+  feedPosts?: number; // friend-feed cards posted
+  gamesFinished?: number; // mini-games played to the end
+  profileSaves?: number; // profile customizations saved
+  createdAt: number;
+  lastSeen: number;
+};
+
+export type EventRecord = {
+  id: string;
+  title: string;
+  description: string;
+  date: string; // YYYY-MM-DD
+  time: string; // e.g. "19:00"
+  host: string;
+  discordUrl?: string;
+  attendees: string[]; // userIds
+};
+
+export type ProfileComment = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  text: string;
+  ts: number;
+};
+
+export type ProfileReport = {
+  id: string;
+  slug: string;
+  reporterId: string;
+  reporterName: string;
+  reason: string;
+  ts: number;
+};
+
+// Customizable "find-a-friend" profile card for a member.
+export type ProfileRecord = {
+  slug: string;
+  ownerId?: string; // locked to the first person who edits it
+  displayName: string;
+  tagline?: string;
+  bio?: string;
+  pronouns?: string;
+  region?: string;
+  ageRange?: string;
+  favoriteGames?: string;
+  lookingFor?: string;
+  vibe?: string;
+  cardBlurb?: string; // short status shown on the member mini-card
+  motto?: string; // the member's motto, shown in the card's motto box
+  role?: "admin" | "moderator" | "vip" | "member";
+  accent: string;
+  nameColor?: string; // colour of the display name in the header
+  avatarRing?: string; // colour of the ring around the avatar
+  avatarUrl?: string;
+  avatarPos?: string;
+  bannerId: string;
+  bannerUrl?: string;
+  bannerFit?: string;
+  bannerPos?: string;
+  backgroundId: string;
+  backgroundUrl?: string;
+  backgroundFit?: string;
+  backgroundPos?: string;
+  musicUrl?: string;
+  discord?: string;
+  twitch?: string;
+  photos?: string[]; // legacy showcase images (kept for back-compat)
+  showcaseStyle?: "grid" | "full";
+  showcases?: Showcase[]; // Steam-style reorderable, named showcase blocks
+  likes?: string[]; // userIds who liked this profile (Famous badge)
+  grantedBadges?: string[]; // admin-granted badges ("secret", "cutefactor")
+  seeds?: string[]; // unique seed ids collected from the gacha
+  lastRollDay?: string; // YYYY-MM-DD of the last gacha roll
+  comments: ProfileComment[];
+  updatedAt: number;
+};
+
+export type ShowcaseImage = { url: string; pos?: string };
+export type Showcase = {
+  id: string;
+  type: "about" | "screenshot" | "feature";
+  title: string;
+  text?: string;
+  images?: ShowcaseImage[];
+};
+
+// A short-lived "looking for a friend" feed post. One active post per person;
+// it disappears 90 minutes after it's made.
+export type FeedPost = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorSlug: string;
+  text: string;
+  game?: string;
+  vibe?: string;
+  accent: string;
+  waves: string[]; // userIds who waved 👋
+  createdAt: number;
+  expiresAt: number;
+};
+
+export const FEED_TTL_MS = 90 * 60 * 1000;
+
+// A friendly "poke" — a little nudge from one member to another.
+export type Poke = {
+  id: string;
+  toId: string;
+  fromId: string;
+  fromName: string;
+  fromAvatar?: string;
+  fromSlug: string;
+  ts: number;
+  seen: boolean;
+};
+
+// A registered email/password account (Discord users don't need one).
+export type AuthUser = {
+  userId: string; // stable id, e.g. "email:foo@bar.com"
+  email: string; // lowercased
+  name: string; // display name
+  passwordHash: string;
+  createdAt: number;
+};
+
+type DBShape = {
+  users: Record<string, UserRecord>;
+  events: EventRecord[];
+  profiles: Record<string, ProfileRecord>;
+  profileReports: ProfileReport[];
+  feedPosts: FeedPost[];
+  pokes: Poke[];
+  authUsers: Record<string, AuthUser>; // keyed by lowercased email
+};
+
+const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_FILE = path.join(DATA_DIR, "store.json");
+const USE_DB = !!process.env.DATABASE_URL;
+
+// The in-memory store. Kept on globalThis so the (separately bundled) custom
+// server and the Next API routes share ONE object within the same process —
+// so mutations by either are instantly visible to the other.
+type GlobalStore = { cache: DBShape | null; mtime: number };
+const g = globalThis as unknown as { __ourchatStore?: GlobalStore };
+if (!g.__ourchatStore) g.__ourchatStore = { cache: null, mtime: 0 };
+const store = g.__ourchatStore;
+
+let cache: DBShape | null = store.cache; // local view; kept in sync below
+let cachedMtime = store.mtime;
+
+function setCacheGlobal(c: DBShape) {
+  cache = c;
+  store.cache = c;
+}
+
+// ---- Optional Postgres backend (a single JSON blob row), used when
+// DATABASE_URL is set. Persists across redeploys on hosts with no disk. ----
+let pgPool: import("pg").Pool | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function getPg(): Promise<import("pg").Pool | null> {
+  if (!USE_DB) return null;
+  if (pgPool) return pgPool;
+  // `pg` is CommonJS; depending on the loader the named export may live on the
+  // module namespace or under `.default`, so accept either.
+  const mod = await import("pg");
+  const Pool = mod.Pool ?? (mod as unknown as { default: typeof import("pg") }).default.Pool;
+  pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    max: 4
+  });
+  await pgPool.query("CREATE TABLE IF NOT EXISTS ourchat_store (id int PRIMARY KEY, data jsonb NOT NULL)");
+  return pgPool;
+}
+
+function backfill(data: DBShape): DBShape {
+  if (!data.users) data.users = {};
+  if (!data.events) data.events = [];
+  if (!data.profiles) data.profiles = {};
+  if (!data.profileReports) data.profileReports = [];
+  if (!data.feedPosts) data.feedPosts = [];
+  if (!data.pokes) data.pokes = [];
+  if (!data.authUsers) data.authUsers = {};
+  return data;
+}
+
+async function dbSaveNow(): Promise<void> {
+  if (!cache) return;
+  const pg = await getPg();
+  if (!pg) return;
+  await pg.query(
+    "INSERT INTO ourchat_store (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = $1",
+    [JSON.stringify(cache)]
+  );
+}
+
+// Load the store at server startup (call once before serving). Falls back to
+// the local file when no database is configured.
+export async function initStore(): Promise<void> {
+  if (!USE_DB) {
+    if (!store.cache) setCacheGlobal(loadFromDisk() ?? seed());
+    return;
+  }
+  try {
+    const pg = await getPg();
+    const res = await pg!.query("SELECT data FROM ourchat_store WHERE id = 1");
+    const data = res.rows[0]?.data as DBShape | undefined;
+    setCacheGlobal(data ? backfill(data) : seed());
+    if (!data) await dbSaveNow();
+    console.log("📦 Ourchat store: connected to database");
+  } catch (e) {
+    console.error("⚠️  Database connect failed, using local file:", (e as Error).message);
+    setCacheGlobal(loadFromDisk() ?? seed());
+  }
+}
+
+// Flush any pending DB save (call on shutdown). Safe no-op without a DB.
+export async function flushStore(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  if (USE_DB) await dbSaveNow().catch(() => {});
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function seed(): DBShape {
+  const t = new Date();
+  const inDays = (n: number) => {
+    const d = new Date(t);
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  };
+  return {
+    users: {},
+    events: [
+      {
+        id: "evt-cozy-cottage-night",
+        title: "Cozy Cottage Game Night 🏡",
+        description:
+          "We're booting up our favourite farming sim and tending fields together. Bring tea, bring snacks, claim a plot!",
+        date: inDays(2),
+        time: "19:00",
+        host: "TeaMistress",
+        discordUrl: "https://discord.gg/your-invite",
+        attendees: []
+      },
+      {
+        id: "evt-midnight-tea",
+        title: "Midnight Tea & Chill ☕🌙",
+        description:
+          "A quiet late-night hangout in the Midnight Oolong room. Lo-fi on, cameras off, just vibes and slow conversation.",
+        date: inDays(5),
+        time: "23:30",
+        host: "MoonDrop",
+        discordUrl: "https://discord.gg/your-invite",
+        attendees: []
+      },
+      {
+        id: "evt-spring-teaparty",
+        title: "Spring Tea Party Festival 🌸",
+        description:
+          "Our monthly themed bash! Dress your avatar in pastels, join the costume showcase, and win flower badges.",
+        date: inDays(12),
+        time: "16:00",
+        host: "PetalPip",
+        discordUrl: "https://discord.gg/your-invite",
+        attendees: []
+      }
+    ],
+    profiles: {},
+    profileReports: [],
+    feedPosts: [],
+    pokes: [],
+    authUsers: {}
+  };
+}
+
+function loadFromDisk(): DBShape | null {
+  try {
+    const stat = fs.statSync(DATA_FILE);
+    const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf8")) as DBShape;
+    if (!data.users) data.users = {};
+    if (!data.events) data.events = [];
+    if (!data.profiles) data.profiles = {};
+    if (!data.profileReports) data.profileReports = [];
+    if (!data.feedPosts) data.feedPosts = [];
+    if (!data.pokes) data.pokes = [];
+    if (!data.authUsers) data.authUsers = {};
+    cachedMtime = stat.mtimeMs;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function read(): DBShape {
+  // Adopt the shared cache if another module instance already loaded it.
+  if (!cache && store.cache) cache = store.cache;
+  if (cache) {
+    // File mode only: pick up changes another instance wrote to disk.
+    if (!USE_DB) {
+      try {
+        const stat = fs.statSync(DATA_FILE);
+        if (stat.mtimeMs !== cachedMtime) {
+          const fresh = loadFromDisk();
+          if (fresh) setCacheGlobal(fresh);
+        }
+      } catch {
+        /* file missing/unreadable — keep the in-memory cache */
+      }
+    }
+    return cache;
+  }
+  // No cache yet. In DB mode this is rare (initStore loads it first); fall back
+  // to the file, then a fresh seed.
+  const loaded = loadFromDisk();
+  setCacheGlobal(loaded ?? seed());
+  if (!loaded) write();
+  return cache!;
+}
+
+function write(): void {
+  if (!cache) return;
+  store.cache = cache; // keep the shared reference current
+  if (USE_DB) {
+    // Debounced async save of the whole blob (coalesces bursts like chat).
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      dbSaveNow().catch((e) => console.error("DB save failed:", (e as Error).message));
+    }, 800);
+    return;
+  }
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(DATA_FILE, JSON.stringify(cache, null, 2), "utf8");
+    cachedMtime = fs.statSync(DATA_FILE).mtimeMs;
+    store.mtime = cachedMtime;
+  } catch {
+    /* best-effort persistence; ephemeral environments may be read-only */
+  }
+}
+
+function statsOf(u: UserRecord): UserStats {
+  return {
+    messages: u.messages,
+    nightMessages: u.nightMessages,
+    daysVisited: u.visitDays.length,
+    wateredOthers: u.wateredOthers,
+    waterReceived: u.waterReceived,
+    growth: growthScore(u),
+    feedPosts: u.feedPosts ?? 0,
+    gamesFinished: u.gamesFinished ?? 0,
+    profileSaves: u.profileSaves ?? 0
+  };
+}
+
+// ---- Garden growth model ----
+export const GROWTH_STAGES = [
+  { key: "seed", label: "Seedling", emoji: "🌰", min: 0 },
+  { key: "sprout", label: "Sprout", emoji: "🌱", min: 5 },
+  { key: "leafy", label: "Leafy", emoji: "🌿", min: 20 },
+  { key: "budding", label: "Budding", emoji: "🪴", min: 50 },
+  { key: "bloom", label: "In Bloom", emoji: "🌸", min: 100 },
+  { key: "flourishing", label: "Flourishing", emoji: "🌺", min: 200 }
+] as const;
+
+export function growthScore(u: UserRecord): number {
+  return (
+    u.messages +
+    u.eventsAttended * 5 +
+    u.eventsHosted * 8 +
+    u.visitDays.length * 3 +
+    u.waterReceived * 2
+  );
+}
+
+export function stageFor(score: number) {
+  let stage: (typeof GROWTH_STAGES)[number] = GROWTH_STAGES[0];
+  let index = 0;
+  GROWTH_STAGES.forEach((s, i) => {
+    if (score >= s.min) {
+      stage = s;
+      index = i;
+    }
+  });
+  const next = GROWTH_STAGES[index + 1];
+  const progress = next
+    ? Math.min(1, (score - stage.min) / (next.min - stage.min))
+    : 1;
+  return { stage, index, next, progress };
+}
+
+function ensureUser(userId: string, name: string, avatar?: string): UserRecord {
+  const db = read();
+  let u = db.users[userId];
+  if (!u) {
+    u = {
+      id: userId,
+      name,
+      avatar,
+      messages: 0,
+      nightMessages: 0,
+      visitDays: [],
+      eventsAttended: 0,
+      eventsHosted: 0,
+      wateredOthers: 0,
+      waterReceived: 0,
+      badges: [],
+      createdAt: Date.now(),
+      lastSeen: Date.now()
+    };
+    db.users[userId] = u;
+  }
+  u.name = name || u.name;
+  if (avatar) u.avatar = avatar;
+  u.lastSeen = Date.now();
+  const day = todayISO();
+  if (!u.visitDays.includes(day)) u.visitDays.push(day);
+  return u;
+}
+
+function awardNewBadges(u: UserRecord) {
+  const fresh = evaluateBadges(statsOf(u), u.badges);
+  fresh.forEach((b) => u.badges.push(b.id));
+  return fresh.map((b) => ({ id: b.id, name: b.name, emoji: b.emoji, description: b.description }));
+}
+
+// ---- Public API ----
+
+export type ActivityType =
+  | "message"
+  | "visit"
+  | "attend"
+  | "host"
+  | "feedPost"
+  | "gameFinished"
+  | "customize";
+
+export function recordActivity(userId: string, name: string, type: ActivityType, avatar?: string) {
+  const db = read();
+  const u = ensureUser(userId, name, avatar);
+  if (type === "message") {
+    u.messages += 1;
+    const hr = new Date().getHours();
+    if (hr >= 0 && hr < 5) u.nightMessages += 1;
+  } else if (type === "attend") {
+    u.eventsAttended += 1;
+  } else if (type === "host") {
+    u.eventsHosted += 1;
+  } else if (type === "feedPost") {
+    u.feedPosts = (u.feedPosts ?? 0) + 1;
+  } else if (type === "gameFinished") {
+    u.gamesFinished = (u.gamesFinished ?? 0) + 1;
+  } else if (type === "customize") {
+    u.profileSaves = (u.profileSaves ?? 0) + 1;
+  }
+  const newBadges = awardNewBadges(u);
+  cache = db;
+  write();
+  return { user: u, newBadges };
+}
+
+export function getUser(userId: string): UserRecord | undefined {
+  return read().users[userId];
+}
+
+export function listGarden() {
+  const db = read();
+  // Only show registered members (people with a claimed profile), so stray
+  // one-off guests / private-room codes don't sprout plants in the garden.
+  const members = new Map(
+    Object.values(db.profiles)
+      .filter((p) => p.ownerId)
+      .map((p) => [p.ownerId as string, p])
+  );
+  return Object.values(db.users)
+    .filter((u) => members.has(u.id))
+    .map((u) => {
+      const prof = members.get(u.id);
+      const score = growthScore(u);
+      const { stage, progress } = stageFor(score);
+      return {
+        id: u.id,
+        name: prof?.displayName || u.name,
+        avatar: prof?.avatarUrl || u.avatar,
+        score,
+        stage: stage.key,
+        stageLabel: stage.label,
+        emoji: stage.emoji,
+        progress,
+        waterReceived: u.waterReceived,
+        badges: u.badges
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
+export function waterPlant(targetId: string, gardenerId: string, gardenerName: string) {
+  const db = read();
+  const target = db.users[targetId];
+  if (!target) return { ok: false as const, error: "No such plant" };
+  target.waterReceived += 1;
+  // The gardener gets credit too (for the Good Neighbor badge).
+  const gardener = ensureUser(gardenerId, gardenerName);
+  gardener.wateredOthers += 1;
+  const newBadges = awardNewBadges(gardener);
+  cache = db;
+  write();
+  return { ok: true as const, target: target.name, newBadges };
+}
+
+export function listEvents(): EventRecord[] {
+  return [...read().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+}
+
+export function createEvent(input: Omit<EventRecord, "id" | "attendees">) {
+  const db = read();
+  const evt: EventRecord = {
+    ...input,
+    id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    attendees: []
+  };
+  db.events.push(evt);
+  // Hosting earns activity/badges.
+  if (input.host) recordActivity(slugUser(input.host), input.host, "host");
+  cache = db;
+  write();
+  return evt;
+}
+
+export function rsvpEvent(eventId: string, userId: string, name: string) {
+  const db = read();
+  const evt = db.events.find((e) => e.id === eventId);
+  if (!evt) return { ok: false as const, error: "No such event" };
+  let newBadges: { id: string; name: string; emoji: string; description: string }[] = [];
+  if (!evt.attendees.includes(userId)) {
+    evt.attendees.push(userId);
+    newBadges = recordActivity(userId, name, "attend").newBadges;
+  }
+  cache = db;
+  write();
+  return { ok: true as const, event: evt, newBadges };
+}
+
+export function badgesForUser(userId: string): string[] {
+  return read().users[userId]?.badges ?? [];
+}
+
+// Quest progress + advanced badges for a user (by userId, with the profile
+// that user owns for likes/granted badges). Powers the quest board UI.
+export function questBoardFor(userId: string) {
+  const db = read();
+  const u = db.users[userId];
+  const stats: UserStats = u
+    ? statsOf(u)
+    : {
+        messages: 0,
+        nightMessages: 0,
+        daysVisited: 0,
+        wateredOthers: 0,
+        waterReceived: 0,
+        growth: 0,
+        feedPosts: 0,
+        gamesFinished: 0,
+        profileSaves: 0
+      };
+  const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
+  const likes = profile?.likes?.length ?? 0;
+  const seeds = profile?.seeds?.length ?? 0;
+  const granted = new Set(profile?.grantedBadges ?? []);
+
+  const quests = QUESTS.map((q) => ({
+    id: q.id,
+    name: q.name,
+    emoji: q.emoji,
+    description: q.description,
+    current: Math.min(q.value(stats), q.target),
+    target: q.target,
+    done: questDone(q, stats)
+  }));
+
+  const advanced = ADVANCED_BADGES.map((b) => {
+    let earned = false;
+    if (b.id === "ourchat") earned = allQuestsDone(stats);
+    else if (b.id === "famous") earned = likes >= FAMOUS_LIKES;
+    else if (b.id === "gardener") earned = seeds >= SEEDS.length;
+    else if (b.granted) earned = granted.has(b.id);
+    return {
+      id: b.id,
+      name: b.name,
+      emoji: b.emoji,
+      description: b.description,
+      granted: !!b.granted,
+      locked: !!b.locked,
+      earned
+    };
+  });
+
+  return { quests, advanced, likes, seeds };
+}
+
+// Advanced badges earned by the member who owns `slug` (shown on the public
+// profile next to their name).
+export function earnedAdvancedBadges(slug: string) {
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile?.ownerId) return [];
+  return questBoardFor(profile.ownerId).advanced.filter((b) => b.earned);
+}
+
+// Deterministic id for free-text names (used for demo guests / event hosts).
+export function slugUser(name: string): string {
+  return "guest:" + name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 40);
+}
+
+// ---- Member profiles (customizable cards + comments + reports) ----
+
+function defaultProfile(slug: string, displayName: string): ProfileRecord {
+  return {
+    slug,
+    displayName,
+    accent: "#FF5E7E",
+    bannerId: "berry",
+    backgroundId: "plum",
+    comments: [],
+    updatedAt: 0
+  };
+}
+
+// Returns the stored profile, or a fresh default (not yet persisted) so the
+// view always has something to render. `displayName` seeds new profiles.
+export function getProfile(slug: string, displayName?: string): ProfileRecord {
+  const db = read();
+  const existing = db.profiles[slug];
+  if (existing) {
+    if (displayName && !existing.displayName) existing.displayName = displayName;
+    return existing;
+  }
+  return defaultProfile(slug, displayName || slug);
+}
+
+export type MemberCard = {
+  slug: string;
+  displayName: string;
+  avatarUrl?: string;
+  accent: string;
+  bannerId: string;
+  bannerUrl?: string;
+  bannerFit?: string;
+  bannerPos?: string;
+  tagline?: string;
+  cardBlurb?: string;
+  motto?: string;
+  region?: string;
+  vibe?: string;
+  storedRole?: "admin" | "moderator" | "vip" | "member";
+  joinedAt: number;
+};
+
+// Registered website members = profiles someone has actually claimed/edited.
+export function listMembers(): MemberCard[] {
+  const db = read();
+  return Object.values(db.profiles)
+    .filter((p) => p.ownerId)
+    .map((p) => ({
+      slug: p.slug,
+      displayName: p.displayName,
+      avatarUrl: p.avatarUrl,
+      accent: p.accent,
+      bannerId: p.bannerId,
+      bannerUrl: p.bannerUrl,
+      bannerFit: p.bannerFit,
+      bannerPos: p.bannerPos,
+      tagline: p.tagline,
+      cardBlurb: p.cardBlurb,
+      motto: p.motto,
+      region: p.region,
+      vibe: p.vibe,
+      storedRole: p.role,
+      joinedAt: p.updatedAt
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+export type TopMember = {
+  slug: string;
+  displayName: string;
+  avatarUrl?: string;
+  accent: string;
+  ownerId: string;
+  score: number;
+};
+
+// Registered members ranked by how much time they spend here (a proxy from
+// their activity record: days visited, messages, watering). For the homepage.
+export function listTopMembers(limit = 16): TopMember[] {
+  const db = read();
+  return Object.values(db.profiles)
+    .filter((p) => p.ownerId)
+    .map((p) => {
+      const u = db.users[p.ownerId as string];
+      const score = u
+        ? u.visitDays.length * 5 + u.messages + u.waterReceived * 2 + u.eventsAttended * 3
+        : 0;
+      return {
+        slug: p.slug,
+        displayName: p.displayName,
+        avatarUrl: p.avatarUrl,
+        accent: p.accent,
+        ownerId: p.ownerId as string,
+        score
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
+// Plain text/string fields that get length-capped to 600 chars on save.
+const EDITABLE_FIELDS: (keyof ProfileRecord)[] = [
+  "displayName", "tagline", "bio", "pronouns", "region", "ageRange",
+  "favoriteGames", "lookingFor", "vibe", "cardBlurb", "motto", "accent",
+  "nameColor", "avatarRing", "bannerId",
+  "backgroundId", "discord", "twitch",
+  "avatarPos", "bannerFit", "bannerPos", "backgroundFit", "backgroundPos"
+];
+
+// URL / image fields that may hold long values (a pasted link OR an uploaded,
+// client-resized image data URL) — capped by size, never truncated to 600.
+const IMAGE_FIELDS: (keyof ProfileRecord)[] = ["avatarUrl", "bannerUrl", "backgroundUrl", "musicUrl"];
+
+const MAX_PHOTOS = 8;
+const MAX_PHOTO_BYTES = 1100 * 1024; // ~1.1MB per image (covers small GIFs)
+const MAX_SHOWCASES = 3;
+const MAX_SHOWCASE_IMAGES = 12;
+const MAX_IMAGE_BYTES = 1200 * 1024; // banner/background may be a touch larger
+
+export function saveProfile(
+  slug: string,
+  patch: Partial<ProfileRecord>,
+  editorId: string,
+  editorName: string
+): { ok: true; profile: ProfileRecord } | { ok: false; error: string } {
+  const db = read();
+  const existing = db.profiles[slug];
+  // Ownership: first editor claims the card; afterwards only they may edit it.
+  if (existing?.ownerId && existing.ownerId !== editorId) {
+    return { ok: false, error: "This profile belongs to someone else." };
+  }
+  const base = existing ?? defaultProfile(slug, editorName);
+  for (const key of EDITABLE_FIELDS) {
+    if (key in patch && patch[key] !== undefined) {
+      // @ts-expect-error indexed assignment across a union of string fields
+      base[key] = typeof patch[key] === "string" ? (patch[key] as string).slice(0, 320) : patch[key];
+    }
+  }
+  // Banner/background/music URLs: accept long values (data URLs), size-capped.
+  for (const key of IMAGE_FIELDS) {
+    if (key in patch) {
+      const val = patch[key];
+      if (typeof val === "string" && val.length <= MAX_IMAGE_BYTES) {
+        // @ts-expect-error indexed assignment across string fields
+        base[key] = val;
+      }
+    }
+  }
+  // Photo showcase: keep only reasonably-sized images, capped in count.
+  if (Array.isArray(patch.photos)) {
+    base.photos = patch.photos
+      .filter((p) => typeof p === "string" && p.length <= MAX_PHOTO_BYTES)
+      .slice(0, MAX_PHOTOS);
+  }
+  if (patch.showcaseStyle === "grid" || patch.showcaseStyle === "full") {
+    base.showcaseStyle = patch.showcaseStyle;
+  }
+  if (
+    patch.role === "admin" ||
+    patch.role === "moderator" ||
+    patch.role === "vip" ||
+    patch.role === "member"
+  ) {
+    base.role = patch.role;
+  }
+  // Steam-style showcases: validate, cap counts/sizes.
+  if (Array.isArray(patch.showcases)) {
+    base.showcases = patch.showcases
+      .filter((s) => s && ["about", "screenshot", "feature"].includes(s.type))
+      .slice(0, MAX_SHOWCASES)
+      .map((s) => ({
+        id: typeof s.id === "string" ? s.id : `sc-${Math.random().toString(36).slice(2, 8)}`,
+        type: s.type,
+        title: (s.title || "").slice(0, 60),
+        text: typeof s.text === "string" ? s.text.slice(0, 500) : undefined,
+        images: Array.isArray(s.images)
+          ? s.images
+              .filter((im) => im && typeof im.url === "string" && im.url.length <= MAX_PHOTO_BYTES)
+              .slice(0, MAX_SHOWCASE_IMAGES)
+              .map((im) => ({ url: im.url, pos: typeof im.pos === "string" ? im.pos : undefined }))
+          : undefined
+      }));
+  }
+  base.ownerId = existing?.ownerId ?? editorId;
+  base.updatedAt = Date.now();
+  db.profiles[slug] = base;
+  cache = db;
+  write();
+  // Counts toward the "Dressed Up" quest.
+  recordActivity(editorId, editorName, "customize");
+  return { ok: true, profile: base };
+}
+
+export function addProfileComment(
+  slug: string,
+  comment: Omit<ProfileComment, "id" | "ts">,
+  displayName?: string
+): { ok: true; comment: ProfileComment } | { ok: false; error: string } {
+  const text = comment.text.trim();
+  if (!text) return { ok: false, error: "Empty comment" };
+  const db = read();
+  const profile = db.profiles[slug] ?? defaultProfile(slug, displayName || slug);
+  const entry: ProfileComment = {
+    id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    authorId: comment.authorId,
+    authorName: comment.authorName,
+    authorAvatar: comment.authorAvatar,
+    text: text.slice(0, 500),
+    ts: Date.now()
+  };
+  profile.comments.push(entry);
+  db.profiles[slug] = profile;
+  cache = db;
+  write();
+  return { ok: true, comment: entry };
+}
+
+export function deleteProfileComment(slug: string, commentId: string, requesterId: string) {
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile) return { ok: false as const, error: "No profile" };
+  const c = profile.comments.find((x) => x.id === commentId);
+  if (!c) return { ok: false as const, error: "No comment" };
+  // Comment author or the profile owner may remove a comment.
+  if (c.authorId !== requesterId && profile.ownerId !== requesterId) {
+    return { ok: false as const, error: "Not allowed" };
+  }
+  profile.comments = profile.comments.filter((x) => x.id !== commentId);
+  cache = db;
+  write();
+  return { ok: true as const };
+}
+
+export function reportProfile(report: Omit<ProfileReport, "id" | "ts">) {
+  const db = read();
+  const entry: ProfileReport = {
+    ...report,
+    reason: report.reason.slice(0, 500),
+    id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    ts: Date.now()
+  };
+  db.profileReports.push(entry);
+  cache = db;
+  write();
+  return entry;
+}
+
+// ---- Friend Feed (90-minute "looking for a friend" posts) ----
+
+function pruneFeed(db: DBShape): boolean {
+  const now = Date.now();
+  const before = db.feedPosts.length;
+  db.feedPosts = db.feedPosts.filter((p) => p.expiresAt > now);
+  return db.feedPosts.length !== before;
+}
+
+export function listFeed(): FeedPost[] {
+  const db = read();
+  if (pruneFeed(db)) {
+    cache = db;
+    write();
+  }
+  return [...db.feedPosts].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export function createFeedPost(input: {
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorSlug: string;
+  text: string;
+  game?: string;
+  vibe?: string;
+  accent?: string;
+}): { ok: true; post: FeedPost } | { ok: false; error: string } {
+  const text = input.text.trim();
+  if (!text) return { ok: false, error: "Say something about who you're looking for!" };
+  const db = read();
+  pruneFeed(db);
+  // One active post per person — a new post replaces the previous one.
+  db.feedPosts = db.feedPosts.filter((p) => p.authorId !== input.authorId);
+  const now = Date.now();
+  const post: FeedPost = {
+    id: `f-${now}-${Math.random().toString(36).slice(2, 6)}`,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    authorAvatar: input.authorAvatar,
+    authorSlug: input.authorSlug,
+    text: text.slice(0, 280),
+    game: input.game?.trim().slice(0, 60) || undefined,
+    vibe: input.vibe?.trim().slice(0, 40) || undefined,
+    accent: input.accent || "#FF5E7E",
+    waves: [],
+    createdAt: now,
+    expiresAt: now + FEED_TTL_MS
+  };
+  db.feedPosts.push(post);
+  cache = db;
+  write();
+  // Counts toward the "Friend Finder" quest.
+  recordActivity(input.authorId, input.authorName, "feedPost");
+  return { ok: true, post };
+}
+
+export function waveFeedPost(postId: string, userId: string) {
+  const db = read();
+  const post = db.feedPosts.find((p) => p.id === postId);
+  if (!post) return { ok: false as const, error: "Post expired" };
+  if (post.waves.includes(userId)) post.waves = post.waves.filter((w) => w !== userId);
+  else post.waves.push(userId);
+  cache = db;
+  write();
+  return { ok: true as const, waves: post.waves.length, waved: post.waves.includes(userId) };
+}
+
+export function deleteFeedPost(postId: string, userId: string) {
+  const db = read();
+  const post = db.feedPosts.find((p) => p.id === postId);
+  if (!post) return { ok: false as const, error: "No post" };
+  if (post.authorId !== userId) return { ok: false as const, error: "Not your post" };
+  db.feedPosts = db.feedPosts.filter((p) => p.id !== postId);
+  cache = db;
+  write();
+  return { ok: true as const };
+}
+
+// ---- Pokes (friendly nudges between members) ----
+
+const POKE_THROTTLE_MS = 30 * 1000; // ignore repeat pokes to the same person
+const MAX_POKES_PER_USER = 50;
+
+export function pokeUser(input: {
+  toId: string;
+  fromId: string;
+  fromName: string;
+  fromAvatar?: string;
+  fromSlug: string;
+}): { ok: true; poke: Poke } | { ok: false; error: string } {
+  if (input.toId === input.fromId) return { ok: false, error: "You can't poke yourself!" };
+  const db = read();
+  const now = Date.now();
+  // Throttle: collapse rapid repeat pokes from the same person into one (refresh it).
+  const recent = db.pokes.find(
+    (p) => p.toId === input.toId && p.fromId === input.fromId && now - p.ts < POKE_THROTTLE_MS
+  );
+  if (recent) {
+    recent.ts = now;
+    recent.seen = false;
+    cache = db;
+    write();
+    return { ok: true, poke: recent };
+  }
+  const poke: Poke = {
+    id: `p-${now}-${Math.random().toString(36).slice(2, 6)}`,
+    toId: input.toId,
+    fromId: input.fromId,
+    fromName: input.fromName,
+    fromAvatar: input.fromAvatar,
+    fromSlug: input.fromSlug,
+    ts: now,
+    seen: false
+  };
+  db.pokes.push(poke);
+  // Keep only the most recent pokes per recipient.
+  const mine = db.pokes.filter((p) => p.toId === input.toId);
+  if (mine.length > MAX_POKES_PER_USER) {
+    const excess = mine.slice(0, mine.length - MAX_POKES_PER_USER).map((p) => p.id);
+    db.pokes = db.pokes.filter((p) => !excess.includes(p.id));
+  }
+  cache = db;
+  write();
+  return { ok: true, poke };
+}
+
+export function listPokes(userId: string): { pokes: Poke[]; unseen: number } {
+  const pokes = read()
+    .pokes.filter((p) => p.toId === userId)
+    .sort((a, b) => b.ts - a.ts);
+  return { pokes, unseen: pokes.filter((p) => !p.seen).length };
+}
+
+export function markPokesSeen(userId: string) {
+  const db = read();
+  let changed = false;
+  for (const p of db.pokes) {
+    if (p.toId === userId && !p.seen) {
+      p.seen = true;
+      changed = true;
+    }
+  }
+  if (changed) {
+    cache = db;
+    write();
+  }
+  return { ok: true as const };
+}
+
+export function clearPoke(pokeId: string, userId: string) {
+  const db = read();
+  const poke = db.pokes.find((p) => p.id === pokeId);
+  if (!poke || poke.toId !== userId) return { ok: false as const, error: "Not allowed" };
+  db.pokes = db.pokes.filter((p) => p.id !== pokeId);
+  cache = db;
+  write();
+  return { ok: true as const };
+}
+
+// ---- Profile likes (Famous badge) & admin-granted badges ----
+
+export function toggleProfileLike(slug: string, userId: string) {
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile) return { ok: false as const, error: "No profile" };
+  if (profile.ownerId === userId) return { ok: false as const, error: "You can't like yourself!" };
+  const likes = profile.likes ?? [];
+  const liked = likes.includes(userId);
+  profile.likes = liked ? likes.filter((id) => id !== userId) : [...likes, userId];
+  cache = db;
+  write();
+  return { ok: true as const, likes: profile.likes.length, liked: !liked };
+}
+
+// Is the given userId an admin? (Owns a profile whose slug resolves to admin.)
+export function isAdminUser(userId: string, adminSlugs: string[]): boolean {
+  const db = read();
+  const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
+  return !!profile && adminSlugs.includes(profile.slug);
+}
+
+// ---- Seed gacha (one roll per member per day) ----
+
+function profileOf(userId: string): ProfileRecord | undefined {
+  return Object.values(read().profiles).find((p) => p.ownerId === userId);
+}
+
+export function seedStateFor(userId: string) {
+  const profile = profileOf(userId);
+  const today = todayISO();
+  return {
+    seeds: profile?.seeds ?? [],
+    canRoll: !!profile && profile.lastRollDay !== today,
+    registered: !!profile
+  };
+}
+
+export function rollDailySeed(userId: string) {
+  const db = read();
+  const profile = Object.values(db.profiles).find((p) => p.ownerId === userId);
+  if (!profile) {
+    return { ok: false as const, error: "Set up your profile first to plant seeds! 🌷" };
+  }
+  const today = todayISO();
+  if (profile.lastRollDay === today) {
+    return { ok: false as const, error: "You already rolled today — come back tomorrow 🌙" };
+  }
+  const seed = rollSeed();
+  const had = (profile.seeds ?? []).includes(seed.id);
+  if (!had) profile.seeds = [...(profile.seeds ?? []), seed.id];
+  profile.lastRollDay = today;
+  cache = db;
+  write();
+  return {
+    ok: true as const,
+    seed: { id: seed.id, name: seed.name, emoji: seed.emoji, rarity: seed.rarity, blurb: seed.blurb },
+    duplicate: had,
+    seeds: profile.seeds ?? [],
+    complete: (profile.seeds ?? []).length >= SEEDS.length
+  };
+}
+
+// Used by tests/tools to validate a stored seed id.
+export function isSeedId(id: string): boolean {
+  return !!seedById(id);
+}
+
+const GRANTABLE = ["secret", "cutefactor"];
+
+export function grantProfileBadge(slug: string, badge: string, granterIsAdmin: boolean) {
+  if (!granterIsAdmin) return { ok: false as const, error: "Admins only" };
+  if (!GRANTABLE.includes(badge)) return { ok: false as const, error: "Not a grantable badge" };
+  const db = read();
+  const profile = db.profiles[slug];
+  if (!profile) return { ok: false as const, error: "No profile" };
+  const granted = profile.grantedBadges ?? [];
+  const has = granted.includes(badge);
+  profile.grantedBadges = has ? granted.filter((b) => b !== badge) : [...granted, badge];
+  cache = db;
+  write();
+  return { ok: true as const, grantedBadges: profile.grantedBadges };
+}
+
+// ---- Email/password accounts ----
+
+function normEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export function getAuthUserByEmail(email: string): AuthUser | undefined {
+  return read().authUsers[normEmail(email)];
+}
+
+export function getAuthUserById(userId: string): AuthUser | undefined {
+  return Object.values(read().authUsers).find((u) => u.userId === userId);
+}
+
+export function createAuthUser(
+  email: string,
+  name: string,
+  passwordHash: string
+): { ok: true; user: { userId: string; name: string; email: string } } | { ok: false; error: string } {
+  const e = normEmail(email);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return { ok: false, error: "Please enter a valid email." };
+  const display = name.trim().slice(0, 24);
+  if (display.length < 2) return { ok: false, error: "Pick a display name (2+ characters)." };
+  const db = read();
+  if (db.authUsers[e]) return { ok: false, error: "That email is already registered." };
+  if (Object.values(db.authUsers).some((u) => u.name.toLowerCase() === display.toLowerCase())) {
+    return { ok: false, error: "That display name is taken — try another." };
+  }
+  const userId = "email:" + e;
+  db.authUsers[e] = { userId, email: e, name: display, passwordHash, createdAt: Date.now() };
+  cache = db;
+  write();
+  return { ok: true, user: { userId, name: display, email: e } };
+}

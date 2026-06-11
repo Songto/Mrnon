@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Baloo 2", system-ui;
+  --font-body: "Quicksand", system-ui;
+}
+
+@layer base {
+  body {
+    @apply bg-cream text-cocoa font-body antialiased;
+    /* A warm, sunny sky that fades from soft blue at the top to peachy cream */
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(255, 179, 199, 0.35), transparent 40%),
+      radial-gradient(circle at 85% 6%, rgba(207, 233, 255, 0.55), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(169, 214, 160, 0.28), transparent 48%),
+      linear-gradient(180deg, #DCEEFF 0%, #FFF4E9 38%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-cocoa;
+  }
+}
+
+@layer components {
+  /* Cards: near-solid white with a warm visible edge so they stand off the
+     cream/sky background instead of blending into it. */
+  .cozy-card {
+    @apply rounded-cozy bg-white/95 backdrop-blur-sm shadow-cozy border border-rose/40;
+  }
+  .cozy-link {
+    @apply rounded-full px-4 py-2 font-display transition hover:-translate-y-0.5;
+  }
+}
+
+/* ---- Badge case: gentle bob + warm glow for earned medallions ---- */
+.badge-float {
+  animation: badge-float 3.6s ease-in-out infinite;
+}
+@keyframes badge-float {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 1px 2px rgba(193, 124, 90, 0.3));
+  }
+  50% {
+    transform: translateY(-3px);
+    filter: drop-shadow(0 4px 7px rgba(240, 168, 72, 0.55));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .badge-float { animation: none; }
+}
+
+/* ---- Drifting clouds backdrop ---- */
+.cloud {
+  position: absolute;
+  background: #fff;
+  border-radius: 100px;
+  opacity: 0.9;
+  filter: drop-shadow(0 8px 12px rgba(150, 170, 200, 0.18));
+}
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+}
+.cloud::before {
+  width: 55%;
+  height: 160%;
+  top: -55%;
+  left: 14%;
+}
+.cloud::after {
+  width: 40%;
+  height: 130%;
+  top: -38%;
+  right: 16%;
+}
+@keyframes cloud-drift {
+  from { transform: translateX(-25vw); }
+  to { transform: translateX(125vw); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cloud { animation: none !important; }
+}
+
+/* Custom scrollbar for chat */
+.chat-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  @apply bg-strawberry/40 rounded-full;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Steam puffs that rise from teacups */
+.steam-puff {
+  position: absolute;
+  bottom: 100%;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+  filter: blur(2px);
+}
