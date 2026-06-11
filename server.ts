@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { parse } from "node:url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
-import { recordActivity } from "./src/lib/db";
+import { recordActivity, initStore, flushStore } from "./src/lib/db";
 import {
   initialBoard,
   legalMoves,
@@ -120,7 +120,11 @@ function onlineUsers(): { userId: string; name: string; avatar?: string }[] {
   return Array.from(seen.values());
 }
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
+  // Load the persisted store (database when DATABASE_URL is set, else the
+  // local file) before we start accepting connections.
+  await initStore();
+
   const server = createServer((req, res) => {
     const parsedUrl = parse(req.url || "/", true);
     handle(req, res, parsedUrl);
@@ -332,4 +336,16 @@ app.prepare().then(() => {
   server.listen(port, () => {
     console.log(`🫖  Ourchat is steeping at http://${hostname}:${port}`);
   });
+
+  // Flush any pending database save before the host stops us (e.g. redeploy).
+  const shutdown = async (signal: string) => {
+    try {
+      await flushStore();
+    } finally {
+      console.log(`\n🫖  Ourchat shutting down (${signal}).`);
+      process.exit(0);
+    }
+  };
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
 });

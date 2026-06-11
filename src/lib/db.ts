@@ -167,9 +167,94 @@ type DBShape = {
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
+const USE_DB = !!process.env.DATABASE_URL;
 
-let cache: DBShape | null = null;
-let cachedMtime = 0;
+// The in-memory store. Kept on globalThis so the (separately bundled) custom
+// server and the Next API routes share ONE object within the same process —
+// so mutations by either are instantly visible to the other.
+type GlobalStore = { cache: DBShape | null; mtime: number };
+const g = globalThis as unknown as { __ourchatStore?: GlobalStore };
+if (!g.__ourchatStore) g.__ourchatStore = { cache: null, mtime: 0 };
+const store = g.__ourchatStore;
+
+let cache: DBShape | null = store.cache; // local view; kept in sync below
+let cachedMtime = store.mtime;
+
+function setCacheGlobal(c: DBShape) {
+  cache = c;
+  store.cache = c;
+}
+
+// ---- Optional Postgres backend (a single JSON blob row), used when
+// DATABASE_URL is set. Persists across redeploys on hosts with no disk. ----
+let pgPool: import("pg").Pool | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function getPg(): Promise<import("pg").Pool | null> {
+  if (!USE_DB) return null;
+  if (pgPool) return pgPool;
+  // `pg` is CommonJS; depending on the loader the named export may live on the
+  // module namespace or under `.default`, so accept either.
+  const mod = await import("pg");
+  const Pool = mod.Pool ?? (mod as unknown as { default: typeof import("pg") }).default.Pool;
+  pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    max: 4
+  });
+  await pgPool.query("CREATE TABLE IF NOT EXISTS ourchat_store (id int PRIMARY KEY, data jsonb NOT NULL)");
+  return pgPool;
+}
+
+function backfill(data: DBShape): DBShape {
+  if (!data.users) data.users = {};
+  if (!data.events) data.events = [];
+  if (!data.profiles) data.profiles = {};
+  if (!data.profileReports) data.profileReports = [];
+  if (!data.feedPosts) data.feedPosts = [];
+  if (!data.pokes) data.pokes = [];
+  if (!data.authUsers) data.authUsers = {};
+  return data;
+}
+
+async function dbSaveNow(): Promise<void> {
+  if (!cache) return;
+  const pg = await getPg();
+  if (!pg) return;
+  await pg.query(
+    "INSERT INTO ourchat_store (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = $1",
+    [JSON.stringify(cache)]
+  );
+}
+
+// Load the store at server startup (call once before serving). Falls back to
+// the local file when no database is configured.
+export async function initStore(): Promise<void> {
+  if (!USE_DB) {
+    if (!store.cache) setCacheGlobal(loadFromDisk() ?? seed());
+    return;
+  }
+  try {
+    const pg = await getPg();
+    const res = await pg!.query("SELECT data FROM ourchat_store WHERE id = 1");
+    const data = res.rows[0]?.data as DBShape | undefined;
+    setCacheGlobal(data ? backfill(data) : seed());
+    if (!data) await dbSaveNow();
+    console.log("📦 Ourchat store: connected to database");
+  } catch (e) {
+    console.error("⚠️  Database connect failed, using local file:", (e as Error).message);
+    setCacheGlobal(loadFromDisk() ?? seed());
+  }
+}
+
+// Flush any pending DB save (call on shutdown). Safe no-op without a DB.
+export async function flushStore(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  if (USE_DB) await dbSaveNow().catch(() => {});
+}
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -245,38 +330,49 @@ function loadFromDisk(): DBShape | null {
   }
 }
 
-// NOTE: the Socket.IO server (run via tsx) and the Next API routes (bundled by
-// Next) load this module as SEPARATE instances, so each keeps its own `cache`.
-// To stay coherent we re-read the shared file whenever its mtime changes.
 function read(): DBShape {
+  // Adopt the shared cache if another module instance already loaded it.
+  if (!cache && store.cache) cache = store.cache;
   if (cache) {
-    try {
-      const stat = fs.statSync(DATA_FILE);
-      if (stat.mtimeMs !== cachedMtime) {
-        const fresh = loadFromDisk();
-        if (fresh) cache = fresh;
+    // File mode only: pick up changes another instance wrote to disk.
+    if (!USE_DB) {
+      try {
+        const stat = fs.statSync(DATA_FILE);
+        if (stat.mtimeMs !== cachedMtime) {
+          const fresh = loadFromDisk();
+          if (fresh) setCacheGlobal(fresh);
+        }
+      } catch {
+        /* file missing/unreadable — keep the in-memory cache */
       }
-    } catch {
-      /* file missing/unreadable — keep the in-memory cache */
     }
     return cache;
   }
+  // No cache yet. In DB mode this is rare (initStore loads it first); fall back
+  // to the file, then a fresh seed.
   const loaded = loadFromDisk();
-  if (loaded) {
-    cache = loaded;
-    return cache;
-  }
-  cache = seed();
-  write();
-  return cache;
+  setCacheGlobal(loaded ?? seed());
+  if (!loaded) write();
+  return cache!;
 }
 
 function write(): void {
   if (!cache) return;
+  store.cache = cache; // keep the shared reference current
+  if (USE_DB) {
+    // Debounced async save of the whole blob (coalesces bursts like chat).
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      dbSaveNow().catch((e) => console.error("DB save failed:", (e as Error).message));
+    }, 800);
+    return;
+  }
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(DATA_FILE, JSON.stringify(cache, null, 2), "utf8");
     cachedMtime = fs.statSync(DATA_FILE).mtimeMs;
+    store.mtime = cachedMtime;
   } catch {
     /* best-effort persistence; ephemeral environments may be read-only */
   }
