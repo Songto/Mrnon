@@ -146,6 +146,15 @@ export type Poke = {
   seen: boolean;
 };
 
+// A registered email/password account (Discord users don't need one).
+export type AuthUser = {
+  userId: string; // stable id, e.g. "email:foo@bar.com"
+  email: string; // lowercased
+  name: string; // display name
+  passwordHash: string;
+  createdAt: number;
+};
+
 type DBShape = {
   users: Record<string, UserRecord>;
   events: EventRecord[];
@@ -153,6 +162,7 @@ type DBShape = {
   profileReports: ProfileReport[];
   feedPosts: FeedPost[];
   pokes: Poke[];
+  authUsers: Record<string, AuthUser>; // keyed by lowercased email
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -212,7 +222,8 @@ function seed(): DBShape {
     profiles: {},
     profileReports: [],
     feedPosts: [],
-    pokes: []
+    pokes: [],
+    authUsers: {}
   };
 }
 
@@ -226,6 +237,7 @@ function loadFromDisk(): DBShape | null {
     if (!data.profileReports) data.profileReports = [];
     if (!data.feedPosts) data.feedPosts = [];
     if (!data.pokes) data.pokes = [];
+    if (!data.authUsers) data.authUsers = {};
     cachedMtime = stat.mtimeMs;
     return data;
   } catch {
@@ -1034,4 +1046,39 @@ export function grantProfileBadge(slug: string, badge: string, granterIsAdmin: b
   cache = db;
   write();
   return { ok: true as const, grantedBadges: profile.grantedBadges };
+}
+
+// ---- Email/password accounts ----
+
+function normEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export function getAuthUserByEmail(email: string): AuthUser | undefined {
+  return read().authUsers[normEmail(email)];
+}
+
+export function getAuthUserById(userId: string): AuthUser | undefined {
+  return Object.values(read().authUsers).find((u) => u.userId === userId);
+}
+
+export function createAuthUser(
+  email: string,
+  name: string,
+  passwordHash: string
+): { ok: true; user: { userId: string; name: string; email: string } } | { ok: false; error: string } {
+  const e = normEmail(email);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return { ok: false, error: "Please enter a valid email." };
+  const display = name.trim().slice(0, 24);
+  if (display.length < 2) return { ok: false, error: "Pick a display name (2+ characters)." };
+  const db = read();
+  if (db.authUsers[e]) return { ok: false, error: "That email is already registered." };
+  if (Object.values(db.authUsers).some((u) => u.name.toLowerCase() === display.toLowerCase())) {
+    return { ok: false, error: "That display name is taken — try another." };
+  }
+  const userId = "email:" + e;
+  db.authUsers[e] = { userId, email: e, name: display, passwordHash, createdAt: Date.now() };
+  cache = db;
+  write();
+  return { ok: true, user: { userId, name: display, email: e } };
 }

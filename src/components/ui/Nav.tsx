@@ -90,9 +90,9 @@ export function Nav() {
                 </button>
               </div>
             ) : (
-              <CozyButton onClick={() => setModal(true)} className="px-4 py-2 text-sm">
-                Pull up a chair
-              </CozyButton>
+              <Link href="/login">
+                <CozyButton className="px-4 py-2 text-sm">Pull up a chair</CozyButton>
+              </Link>
             )}
           </div>
         </nav>

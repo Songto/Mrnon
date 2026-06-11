@@ -12,7 +12,7 @@ export type Identity = {
   userId: string;
   name: string;
   avatar?: string;
-  source: "discord" | "guest";
+  source: "discord" | "email" | "guest";
 };
 
 type IdentityContext = {
@@ -84,12 +84,13 @@ export function IdentityProvider({
 
   const identity: Identity | null = useMemo(() => {
     if (session?.user) {
-      const discordId = (session.user as { discordId?: string }).discordId;
+      const su = session.user as { uid?: string; source?: string };
+      const uid = su.uid || `discord:${session.user.name}`;
       return {
-        userId: discordId ? `discord:${discordId}` : `discord:${session.user.name}`,
+        userId: uid,
         name: session.user.name || "Guest",
         avatar: session.user.image || undefined,
-        source: "discord"
+        source: su.source === "email" ? "email" : "discord"
       };
     }
     if (guestName) {
