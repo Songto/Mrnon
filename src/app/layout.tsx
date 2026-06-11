@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata, Viewport } from "next";
 import "@/styles/globals.css";
 import Providers from "@/components/Providers";
@@ -36,7 +37,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Nav />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
             <footer className="border-t border-cocoa/10 px-4 py-6 text-center text-xs text-cocoa-soft">
-              Made with 🍓 &amp; 🫖 for the OURCHAT Teaparty · welcome home
+              <p>Made with 🍓 &amp; 🫖 for the OURCHAT Teaparty · welcome home</p>
+              <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+                <Link href="/terms" className="hover:text-strawberry hover:underline">
+                  Terms of Service
+                </Link>
+                <span aria-hidden>·</span>
+                <Link href="/privacy" className="hover:text-strawberry hover:underline">
+                  Privacy Policy
+                </Link>
+                <span aria-hidden>·</span>
+                <a
+                  href="https://discord.gg/sDgzXBNjx8"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-strawberry hover:underline"
+                >
+                  Discord
+                </a>
+              </p>
             </footer>
           </div>
           <AmbiencePlayer />
