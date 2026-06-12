@@ -43,6 +43,18 @@ function cleanCode(raw: string): string {
     .slice(0, 8);
 }
 
+// A cozy curated emoji set for the chat picker.
+const EMOJIS = [
+  "😊","😄","😆","🥰","😍","😋","😎","🤗",
+  "🙂","😉","😇","🥹","😴","🤭","🫣","🥺",
+  "😢","😭","😤","🤔","🙄","😳","😅","🤤",
+  "❤️","🩷","💗","💖","💕","💞","🧡","💛",
+  "💚","💙","💜","🤍","✨","🌟","⭐","💫",
+  "👋","🙌","👏","🙏","🤝","👍","👌","🫶",
+  "🫖","🍵","☕","🍓","🌸","🌷","🌼","🌿",
+  "🌙","🎮","🎲","🐰","🐱","🍰","🧁","🎀"
+];
+
 export function ChatRoom() {
   const { identity, ready } = useIdentity();
   const { socket, connected } = useSocket();
@@ -54,6 +66,7 @@ export function ChatRoom() {
   const [showModal, setShowModal] = useState(false);
   const [joinInput, setJoinInput] = useState("");
   const [copied, setCopied] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -119,6 +132,11 @@ export function ChatRoom() {
     socket.emit("message", { text });
     socket.emit("typing", false);
     setDraft("");
+  };
+
+  const addEmoji = (e: string) => {
+    setDraft((d) => (d + e).slice(0, 300));
+    if (socket) socket.emit("typing", true);
   };
 
   const onDraftChange = (v: string) => {
@@ -318,18 +336,47 @@ export function ChatRoom() {
           <span className="opacity-70">only the latest 30 messages are kept</span>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-cocoa/10 p-3">
-          <input
-            value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={`Message ${roomName}…`}
-            maxLength={300}
-            className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none focus:border-strawberry"
-          />
-          <CozyButton onClick={send} disabled={!draft.trim()} className="px-5">
-            Send 🫖
-          </CozyButton>
+        <div className="relative border-t border-cocoa/10">
+          {showEmoji && (
+            <div className="absolute bottom-full left-3 mb-2 w-[19rem] max-w-[calc(100%-1.5rem)] cozy-card p-2">
+              <div className="grid grid-cols-8 gap-0.5">
+                {EMOJIS.map((e) => (
+                  <button
+                    key={e}
+                    onClick={() => addEmoji(e)}
+                    className="rounded-lg p-1 text-xl transition hover:bg-rose/30"
+                    title={`Add ${e}`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2 p-3">
+            <button
+              onClick={() => setShowEmoji((s) => !s)}
+              className={clsx(
+                "shrink-0 rounded-full p-2 text-xl transition",
+                showEmoji ? "bg-rose/40" : "hover:bg-surface/70"
+              )}
+              title="Emoji"
+              aria-label="Emoji picker"
+            >
+              😊
+            </button>
+            <input
+              value={draft}
+              onChange={(e) => onDraftChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder={`Message ${roomName}…`}
+              maxLength={300}
+              className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none focus:border-strawberry"
+            />
+            <CozyButton onClick={send} disabled={!draft.trim()} className="px-5">
+              Send 🫖
+            </CozyButton>
+          </div>
         </div>
       </section>
 
