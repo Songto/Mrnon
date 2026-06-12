@@ -117,6 +117,16 @@ export type Showcase = {
 
 // A short-lived "looking for a friend" feed post. One active post per person;
 // it disappears 90 minutes after it's made.
+export type FeedComment = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorSlug: string;
+  text: string;
+  ts: number;
+};
+
 export type FeedPost = {
   id: string;
   authorId: string;
@@ -128,6 +138,7 @@ export type FeedPost = {
   vibe?: string;
   accent: string;
   waves: string[]; // userIds who waved 👋
+  comments?: FeedComment[];
   createdAt: number;
   expiresAt: number;
 };
@@ -1014,6 +1025,32 @@ export function waveFeedPost(postId: string, userId: string) {
   cache = db;
   write();
   return { ok: true as const, waves: post.waves.length, waved: post.waves.includes(userId) };
+}
+
+export function commentFeedPost(
+  postId: string,
+  input: { authorId: string; authorName: string; authorAvatar?: string; authorSlug: string; text: string }
+) {
+  const text = input.text.trim();
+  if (!text) return { ok: false as const, error: "Write something first" };
+  const db = read();
+  const post = db.feedPosts.find((p) => p.id === postId);
+  if (!post) return { ok: false as const, error: "Post expired" };
+  if (!post.comments) post.comments = [];
+  post.comments.push({
+    id: `fc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    authorId: input.authorId,
+    authorName: input.authorName,
+    authorAvatar: input.authorAvatar,
+    authorSlug: input.authorSlug,
+    text: text.slice(0, 200),
+    ts: Date.now()
+  });
+  // Keep only the most recent 30 comments per post.
+  if (post.comments.length > 30) post.comments = post.comments.slice(-30);
+  cache = db;
+  write();
+  return { ok: true as const, comments: post.comments };
 }
 
 export function deleteFeedPost(postId: string, userId: string) {

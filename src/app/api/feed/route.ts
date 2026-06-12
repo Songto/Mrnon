@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listFeed, createFeedPost, waveFeedPost, deleteFeedPost } from "@/lib/db";
+import { listFeed, createFeedPost, waveFeedPost, deleteFeedPost, commentFeedPost } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,21 @@ export async function POST(req: Request) {
     const result = waveFeedPost(body.postId, body.userId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 404 });
     return NextResponse.json(result);
+  }
+
+  if (body.action === "comment") {
+    if (!body.postId || !body.authorId || !body.text) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+    const result = commentFeedPost(body.postId, {
+      authorId: body.authorId,
+      authorName: body.authorName,
+      authorAvatar: body.authorAvatar,
+      authorSlug: body.authorSlug || "",
+      text: body.text
+    });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ ok: true, comments: result.comments, posts: listFeed() });
   }
 
   if (body.action === "delete") {
