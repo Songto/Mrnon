@@ -8,6 +8,16 @@ import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 
+type Comment = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorSlug: string;
+  text: string;
+  ts: number;
+};
+
 type Post = {
   id: string;
   authorId: string;
@@ -19,6 +29,7 @@ type Post = {
   vibe?: string;
   accent: string;
   waves: string[];
+  comments?: Comment[];
   createdAt: number;
   expiresAt: number;
 };
@@ -74,6 +85,7 @@ export function FeedBoard() {
   const [posting, setPosting] = useState(false);
   const [poked, setPoked] = useState<Record<string, boolean>>({}); // authorId -> just poked
   const [pokes, setPokes] = useState<Poke[]>([]);
+  const [commentDraft, setCommentDraft] = useState<Record<string, string>>({}); // postId -> draft
   const loadedOnce = useRef(false);
 
   const load = () =>
@@ -101,7 +113,7 @@ export function FeedBoard() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 20000); // keep the feed fresh
+    const t = setInterval(load, 4000); // keep the feed fresh (near real-time)
     loadedOnce.current = true;
     return () => clearInterval(t);
   }, []);
@@ -109,7 +121,7 @@ export function FeedBoard() {
   // Load (and mark seen) the current member's pokes, then poll for new ones.
   useEffect(() => {
     loadPokes(true);
-    const t = setInterval(() => loadPokes(false), 20000);
+    const t = setInterval(() => loadPokes(false), 4000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [identity?.userId]);
@@ -207,6 +219,46 @@ export function FeedBoard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "wave", postId, userId: identity.userId })
     }).catch(() => {});
+  };
+
+  const comment = async (postId: string) => {
+    if (!identity) {
+      setShowLogin(true);
+      return;
+    }
+    const draft = (commentDraft[postId] || "").trim();
+    if (!draft) return;
+    const optimistic: Comment = {
+      id: `tmp-${Date.now()}`,
+      authorId: identity.userId,
+      authorName: identity.name,
+      authorAvatar: identity.avatar,
+      authorSlug: memberSlug(identity.name),
+      text: draft,
+      ts: Date.now()
+    };
+    setPosts((ps) =>
+      ps.map((p) => (p.id === postId ? { ...p, comments: [...(p.comments ?? []), optimistic] } : p))
+    );
+    setCommentDraft((d) => ({ ...d, [postId]: "" }));
+    const res = await fetch("/api/feed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "comment",
+        postId,
+        authorId: identity.userId,
+        authorName: identity.name,
+        authorAvatar: identity.avatar,
+        authorSlug: memberSlug(identity.name),
+        text: draft
+      })
+    })
+      .then((r) => r.json())
+      .catch(() => null);
+    if (res?.ok && res.comments) {
+      setPosts((ps) => ps.map((p) => (p.id === postId ? { ...p, comments: res.comments } : p)));
+    }
   };
 
   const remove = async (postId: string) => {
@@ -436,6 +488,52 @@ export function FeedBoard() {
                         view profile →
                       </Link>
                     )}
+                  </div>
+
+                  {/* comments */}
+                  <div className="mt-1 border-t border-cocoa/10 pt-2">
+                    {p.comments && p.comments.length > 0 && (
+                      <ul className="mb-2 space-y-1.5">
+                        {p.comments.map((c) => (
+                          <li key={c.id} className="flex items-start gap-2">
+                            <Link href={`/members/${c.authorSlug}`} className="mt-0.5 shrink-0">
+                              <Avatar name={c.authorName} src={c.authorAvatar} size={22} />
+                            </Link>
+                            <p className="text-xs text-cocoa [overflow-wrap:anywhere]">
+                              <Link
+                                href={`/members/${c.authorSlug}`}
+                                className="font-display hover:underline"
+                              >
+                                {c.authorName}
+                              </Link>{" "}
+                              <span className="text-cocoa-soft">{c.text}</span>
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        value={commentDraft[p.id] || ""}
+                        onChange={(e) =>
+                          setCommentDraft((d) => ({ ...d, [p.id]: e.target.value }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") comment(p.id);
+                        }}
+                        maxLength={200}
+                        placeholder={identity ? "Add a comment…" : "Log in to comment"}
+                        disabled={!identity}
+                        className="min-w-0 flex-1 rounded-full border border-cocoa/10 bg-surface/80 px-3 py-1.5 text-xs outline-none focus:border-strawberry disabled:opacity-60"
+                      />
+                      <button
+                        onClick={() => comment(p.id)}
+                        disabled={!identity || !(commentDraft[p.id] || "").trim()}
+                        className="shrink-0 rounded-full bg-strawberry/20 px-3 py-1.5 text-xs font-display text-strawberry transition active:scale-95 disabled:opacity-40"
+                      >
+                        Send
+                      </button>
+                    </div>
                   </div>
                 </article>
               );
