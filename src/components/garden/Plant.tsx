@@ -1,7 +1,26 @@
 "use client";
 
-// A parametric cozy plant that visibly grows with `stageIndex` (0..5).
+import { useState } from "react";
+
+// A cozy plant that grows with `stageIndex` (0..5). If an animated stage image
+// has been uploaded to /public/plant/stage-<n>.gif it shows that; otherwise it
+// falls back to the built-in parametric SVG below — so the garden always works.
 export function Plant({ stageIndex, size = 96 }: { stageIndex: number; size?: number }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const stage = Math.max(0, Math.min(5, stageIndex));
+  if (!imgFailed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`/plant/stage-${stage}.gif`}
+        alt=""
+        width={size}
+        height={size}
+        onError={() => setImgFailed(true)}
+        style={{ width: size, height: size, objectFit: "contain" }}
+      />
+    );
+  }
   const stem = 8 + stageIndex * 14; // stem height grows per stage
   const leaves = Math.min(stageIndex, 3);
   const hasBud = stageIndex >= 3;
