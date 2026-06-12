@@ -9,6 +9,7 @@ import { clsx } from "@/lib/clsx";
 import { Avatar } from "./Avatar";
 import { CozyButton } from "./CozyButton";
 import { IdentityModal } from "./IdentityModal";
+import { ThemeToggle } from "./ThemeToggle";
 import { Icon, type IconName } from "./Icon";
 
 export function Nav() {
@@ -77,6 +78,7 @@ export function Nav() {
           </ul>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {ready && identity ? (
               <div className="flex items-center gap-2">
                 <Avatar name={identity.name} src={identity.avatar} size={34} />

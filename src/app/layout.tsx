@@ -16,13 +16,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#DCEEFF"
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#DCEEFF" },
+    { media: "(prefers-color-scheme: dark)", color: "#1C232E" }
+  ]
 };
+
+// Apply the saved (or system) theme before first paint, so there's no flash.
+const themeScript = `(function(){try{var t=localStorage.getItem('ourchat:theme');if(t==='dark'||(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
