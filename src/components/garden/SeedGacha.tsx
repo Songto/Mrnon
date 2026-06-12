@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { SEEDS, RARITY_META, type SeedDef, type SeedRarity } from "@/lib/seeds";
+import { SeedIcon } from "./SeedIcon";
 import { clsx } from "@/lib/clsx";
 
 type RollResult = {
@@ -71,8 +72,8 @@ export function SeedGacha() {
           <p className="font-display text-lg">Seed Gacha 🎰</p>
           <p className="mt-0.5 text-xs text-cocoa-soft">One free roll a day — collect all 10!</p>
 
-          <div className={clsx("my-3 text-7xl", rolling && "animate-wiggle")}>
-            {rolling ? "🥚" : result ? result.seed.emoji : "🌰"}
+          <div className={clsx("my-3 flex h-[72px] items-center justify-center text-7xl", rolling && "animate-wiggle")}>
+            {rolling ? "🥚" : result ? <SeedIcon id={result.seed.id} emoji={result.seed.emoji} size={72} /> : "🌰"}
           </div>
 
           {result && !rolling && (
@@ -87,8 +88,8 @@ export function SeedGacha() {
                 {RARITY_META[result.seed.rarity].label}
                 {result.seed.rarity === "legendary" && " ✨"}
               </p>
-              <p className="font-display">
-                {result.seed.emoji} {result.seed.name}
+              <p className="flex items-center justify-center gap-1.5 font-display">
+                <SeedIcon id={result.seed.id} emoji={result.seed.emoji} size={20} /> {result.seed.name}
                 {result.duplicate && <span className="text-xs text-cocoa-soft"> (duplicate)</span>}
               </p>
               <p className="text-[11px] text-cocoa-soft">{result.seed.blurb}</p>
@@ -151,7 +152,7 @@ export function SeedGacha() {
                   style={{ borderColor: has ? RARITY_META[s.rarity].color : "#00000014" }}
                 >
                   <span className={clsx("text-2xl sm:text-3xl", !has && "grayscale opacity-40")}>
-                    {has ? s.emoji : "❓"}
+                    {has ? <SeedIcon id={s.id} emoji={s.emoji} size={32} /> : "❓"}
                   </span>
                   <span className="mt-0.5 w-full truncate text-[9px] text-cocoa-soft">
                     {has ? s.name : "???"}
