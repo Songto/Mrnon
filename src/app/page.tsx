@@ -52,12 +52,19 @@ export default function HomePage() {
             rooms, meet the teaparty members, and stay linked with our Discord — all in one
             cozy spot.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <CozyLinkButton href="/tearoom">Enter the rooms 💬</CozyLinkButton>
-            <CozyLinkButton href="/members" variant="soft">
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <CozyLinkButton href="/tearoom" className="px-4 py-2 text-sm">
+              Enter the rooms 💬
+            </CozyLinkButton>
+            <CozyLinkButton href="/members" variant="soft" className="px-4 py-2 text-sm">
               Meet the members 🪪
             </CozyLinkButton>
-            <CozyLinkButton href="https://discord.gg/sDgzXBNjx8" external variant="discord">
+            <CozyLinkButton
+              href="https://discord.gg/sDgzXBNjx8"
+              external
+              variant="discord"
+              className="px-4 py-2 text-sm"
+            >
               Join our Discord 💌
             </CozyLinkButton>
           </div>
