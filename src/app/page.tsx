@@ -57,6 +57,9 @@ export default function HomePage() {
             <CozyLinkButton href="/members" variant="soft">
               Meet the members 🪪
             </CozyLinkButton>
+            <CozyLinkButton href="https://discord.gg/sDgzXBNjx8" external variant="discord">
+              Join our Discord 💌
+            </CozyLinkButton>
           </div>
         </div>
 
