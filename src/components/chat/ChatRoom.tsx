@@ -9,7 +9,8 @@ import { clsx } from "@/lib/clsx";
 import { Avatar } from "../ui/Avatar";
 import { CozyButton } from "../ui/CozyButton";
 import { IdentityModal } from "../ui/IdentityModal";
-import { TeaTable, type Seat } from "./TeaTable";
+import { type Seat } from "./TeaTable";
+import { RoomMembers } from "./RoomMembers";
 import { GamePanel } from "./GamePanel";
 
 type Message = {
@@ -60,7 +61,6 @@ export function ChatRoom() {
   const code = isPrivate ? roomId.slice(CODE_PREFIX.length) : "";
   const roomName = isPrivate ? `Private room ${code}` : LOBBY.name;
   const roomEmoji = isPrivate ? "🔑" : LOBBY.emoji;
-  const roomAccent = isPrivate ? "bg-lavender/15" : LOBBY.accent;
 
   // Join the selected room whenever identity / room / connection changes.
   useEffect(() => {
@@ -164,10 +164,12 @@ export function ChatRoom() {
     <div
       className={clsx(
         "grid gap-4",
-        isPrivate ? "lg:grid-cols-[260px_minmax(0,1fr)_420px]" : "lg:grid-cols-[300px_1fr]"
+        isPrivate
+          ? "lg:grid-cols-[240px_minmax(0,1fr)_360px]"
+          : "lg:grid-cols-[260px_minmax(0,1fr)_220px]"
       )}
     >
-      {/* Left: lobby + private rooms + table */}
+      {/* Left: lobby + private room controls */}
       <aside className="space-y-4">
         <div className="cozy-card p-3">
           <p className="mb-2 px-2 font-display text-sm text-cocoa-soft">Public table</p>
@@ -240,13 +242,9 @@ export function ChatRoom() {
             </>
           )}
         </div>
-
-        <div className={clsx("cozy-card p-4", roomAccent)}>
-          <TeaTable seats={seats} meId={identity?.userId} />
-        </div>
       </aside>
 
-      {/* Right: messages + composer */}
+      {/* Middle: messages + composer */}
       <section className="cozy-card flex h-[70vh] flex-col p-0">
         <div className="flex items-center justify-between border-b border-cocoa/10 px-5 py-3">
           <h2 className="flex items-center gap-2 text-lg">
@@ -335,16 +333,17 @@ export function ChatRoom() {
         </div>
       </section>
 
-      {/* Right: mini-game (private rooms only) */}
-      {isPrivate && (
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+      {/* Right: who's in the room + (private) mini-game */}
+      <aside className="space-y-4">
+        <RoomMembers seats={seats} meId={identity?.userId} />
+        {isPrivate && (
           <GamePanel
             socket={socket}
             userId={identity?.userId}
             playerCount={new Set(seats.map((s) => s.userId)).size}
           />
-        </aside>
-      )}
+        )}
+      </aside>
     </div>
   );
 }
