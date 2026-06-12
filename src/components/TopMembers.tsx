@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useSocket } from "@/lib/socket-client";
 import { ROLE_META, roleForSlug } from "@/lib/roles";
 import { Avatar } from "./ui/Avatar";
-import { CozyLinkButton } from "./ui/CozyButton";
 
 type TopMember = {
   slug: string;
@@ -100,14 +99,6 @@ export function TopMembers() {
             })}
           </ul>
         )}
-        <CozyLinkButton
-          variant="discord"
-          href="https://discord.gg/sDgzXBNjx8"
-          external
-          className="w-full"
-        >
-          Join our Discord 💌
-        </CozyLinkButton>
       </div>
     </div>
   );
