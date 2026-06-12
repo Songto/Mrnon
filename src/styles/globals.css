@@ -5,6 +5,26 @@
 :root {
   --font-display: "Baloo 2", system-ui;
   --font-body: "Quicksand", system-ui;
+
+  /* Light theme — structural tokens as RGB channels (see tailwind.config). */
+  --c-cream: 255 244 233;
+  --c-parchment: 251 231 212;
+  --c-surface: 255 255 255;
+  --c-surface-soft: 255 240 226;
+  --c-cocoa: 62 44 27;
+  --c-cocoa-soft: 110 86 69;
+  --c-sky: 207 233 255;
+}
+
+.dark {
+  /* Cozy warm-dark theme — deep browns, soft cream text. */
+  --c-cream: 33 27 24;
+  --c-parchment: 46 38 33;
+  --c-surface: 44 37 33;
+  --c-surface-soft: 58 48 43;
+  --c-cocoa: 242 232 222;
+  --c-cocoa-soft: 188 172 158;
+  --c-sky: 28 35 46;
 }
 
 @layer base {
@@ -19,16 +39,28 @@
     background-attachment: fixed;
   }
 
+  /* Dark: a deep, cozy night sky settling into warm brown. */
+  .dark body {
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(255, 126, 155, 0.16), transparent 40%),
+      radial-gradient(circle at 85% 6%, rgba(120, 150, 200, 0.16), transparent 42%),
+      radial-gradient(circle at 50% 100%, rgba(127, 185, 118, 0.12), transparent 48%),
+      linear-gradient(180deg, #1C232E 0%, #211B18 42%);
+  }
+
   h1, h2, h3, h4 {
     @apply font-display text-cocoa;
   }
 }
 
 @layer components {
-  /* Cards: near-solid white with a warm visible edge so they stand off the
-     cream/sky background instead of blending into it. */
+  /* Cards: near-solid surface with a warm visible edge so they stand off the
+     background instead of blending into it. */
   .cozy-card {
-    @apply rounded-cozy bg-white/95 backdrop-blur-sm shadow-cozy border border-rose/40;
+    @apply rounded-cozy bg-surface/95 backdrop-blur-sm shadow-cozy border border-rose/40;
+  }
+  .dark .cozy-card {
+    @apply border-white/10;
   }
   .cozy-link {
     @apply rounded-full px-4 py-2 font-display transition hover:-translate-y-0.5;
@@ -67,6 +99,15 @@
   position: absolute;
   background: #fff;
   border-radius: 50%;
+}
+/* Soft, dim clouds against the night sky. */
+.dark .cloud,
+.dark .cloud::before,
+.dark .cloud::after {
+  background: #313b49;
+}
+.dark .cloud {
+  opacity: 0.4;
 }
 .cloud::before {
   width: 55%;

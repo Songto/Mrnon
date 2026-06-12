@@ -147,7 +147,7 @@ export function SeedGacha() {
                   title={has ? `${s.name} (${RARITY_META[s.rarity].label}) — ${s.blurb}` : `??? (${RARITY_META[s.rarity].label})`}
                   className={clsx(
                     "flex aspect-square flex-col items-center justify-center rounded-2xl border-2 p-1 text-center transition",
-                    has ? "bg-white" : "bg-cocoa/5 opacity-70"
+                    has ? "bg-surface" : "bg-cocoa/5 opacity-70"
                   )}
                   style={{ borderColor: has ? RARITY_META[s.rarity].color : "#00000014" }}
                 >

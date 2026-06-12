@@ -5,17 +5,19 @@ const config: Config = {
     "./src/app/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}"
   ],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        // Warm & cute "strawberry teaparty" palette — soft pastels, sunny cream
-        night: "#41301F", // warm dark brown (text on bright accents, soft tints)
-        cream: "#FFF4E9", // sunny base page background
-        parchment: "#FBE7D4", // slightly deeper warm tint
-        surface: "#FFFFFF", // cards / panels (used translucent for a soft glass look)
-        "surface-soft": "#FFF0E2",
-        cocoa: "#3E2C1B", // primary text (deep warm brown — strong contrast)
-        "cocoa-soft": "#6E5645", // muted text (still clearly readable)
+        // Structural tokens are CSS-variable driven so they flip in dark mode
+        // (see :root / .dark in globals.css). Accents stay constant.
+        night: "#41301F", // warm dark brown (text on bright accents)
+        cream: "rgb(var(--c-cream) / <alpha-value>)", // page background
+        parchment: "rgb(var(--c-parchment) / <alpha-value>)",
+        surface: "rgb(var(--c-surface) / <alpha-value>)", // cards / panels
+        "surface-soft": "rgb(var(--c-surface-soft) / <alpha-value>)",
+        cocoa: "rgb(var(--c-cocoa) / <alpha-value>)", // primary text
+        "cocoa-soft": "rgb(var(--c-cocoa-soft) / <alpha-value>)", // muted text
         strawberry: "#FF7E9B",
         "strawberry-deep": "#FF6385",
         rose: "#FFB3C7",
@@ -25,7 +27,7 @@ const config: Config = {
         lavender: "#C9BCE0",
         honey: "#FBD08A",
         matcha: "#C7E0AE",
-        sky: "#CFE9FF" // soft sky for the cloud backdrop
+        sky: "rgb(var(--c-sky) / <alpha-value>)" // soft sky / cloud backdrop
       },
       fontFamily: {
         display: ["var(--font-display)", "ui-rounded", "system-ui", "sans-serif"],
