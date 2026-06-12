@@ -36,6 +36,12 @@ export default function HomePage() {
       {/* Hero */}
       <section className="grid items-center gap-8 lg:grid-cols-2">
         <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="OURCHAT Teaparty"
+            className="mb-5 w-44 rounded-3xl shadow-cozy-lg sm:w-52"
+          />
           <span className="inline-block rounded-full bg-surface/70 px-4 py-1 text-xs font-display text-strawberry">
             🍓 the home of our cozy game community
           </span>

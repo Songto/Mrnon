@@ -1,7 +1,11 @@
+"use client";
+
 // Hand-drawn SVG medallion art for the advanced badges — award-seal style
 // with a scalloped edge, soft gradients, and a custom emblem per badge.
-// Pure SVG: crisp at any size, zero image assets.
+// If an animated image is uploaded to /public/badges/<id>.gif it shows that
+// instead; otherwise it falls back to the built-in SVG (crisp at any size).
 
+import { useState } from "react";
 import type { AdvancedBadgeId } from "@/lib/badges";
 
 // Scalloped seal outline (a starburst polygon around the centre).
@@ -131,6 +135,22 @@ export function BadgeArt({
   className?: string;
   title?: string;
 }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (!imgFailed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`/badges/${id}.gif`}
+        alt={title || id}
+        title={title}
+        width={size}
+        height={size}
+        onError={() => setImgFailed(true)}
+        className={className}
+        style={{ width: size, height: size, objectFit: "contain" }}
+      />
+    );
+  }
   const s = SCHEMES[id];
   const gid = `bdg-${id}`;
   return (
