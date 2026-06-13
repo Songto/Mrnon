@@ -30,6 +30,7 @@ export type UserRecord = {
   feedPosts?: number; // friend-feed cards posted
   gamesFinished?: number; // mini-games played to the end
   profileSaves?: number; // profile customizations saved
+  growthBonus?: number; // admin garden-stage adjustment (can be negative)
   createdAt: number;
   lastSeen: number;
 };
@@ -79,6 +80,7 @@ export type ProfileRecord = {
   cardBlurb?: string; // short status shown on the member mini-card
   motto?: string; // the member's motto, shown in the card's motto box
   role?: "admin" | "moderator" | "vip" | "member";
+  banned?: boolean; // admin-banned: hidden from listings
   accent: string;
   nameColor?: string; // colour of the display name in the header
   avatarRing?: string; // colour of the ring around the avatar
@@ -462,12 +464,14 @@ export const GROWTH_STAGES = [
 ] as const;
 
 export function growthScore(u: UserRecord): number {
-  return (
+  return Math.max(
+    0,
     u.messages +
-    u.eventsAttended * 5 +
-    u.eventsHosted * 8 +
-    u.visitDays.length * 3 +
-    u.waterReceived * 2
+      u.eventsAttended * 5 +
+      u.eventsHosted * 8 +
+      u.visitDays.length * 3 +
+      u.waterReceived * 2 +
+      (u.growthBonus ?? 0)
   );
 }
 
@@ -567,7 +571,7 @@ export function listGarden() {
   // one-off guests / private-room codes don't sprout plants in the garden.
   const members = new Map(
     Object.values(db.profiles)
-      .filter((p) => p.ownerId)
+      .filter((p) => p.ownerId && !p.banned)
       .map((p) => [p.ownerId as string, p])
   );
   return Object.values(db.users)
@@ -758,7 +762,7 @@ export type MemberCard = {
 export function listMembers(): MemberCard[] {
   const db = read();
   return Object.values(db.profiles)
-    .filter((p) => p.ownerId)
+    .filter((p) => p.ownerId && !p.banned)
     .map((p) => ({
       slug: p.slug,
       displayName: p.displayName,
@@ -793,7 +797,7 @@ export type TopMember = {
 export function listTopMembers(limit = 16): TopMember[] {
   const db = read();
   return Object.values(db.profiles)
-    .filter((p) => p.ownerId)
+    .filter((p) => p.ownerId && !p.banned)
     .map((p) => {
       const u = db.users[p.ownerId as string];
       const score = u
@@ -1227,6 +1231,104 @@ export function grantProfileBadge(slug: string, badge: string, granterIsAdmin: b
   cache = db;
   write();
   return { ok: true as const, grantedBadges: profile.grantedBadges };
+}
+
+// ---- Admin tools (guarded by the API route, which checks the caller) ----
+
+export type AdminMember = {
+  slug: string;
+  displayName: string;
+  avatarUrl?: string;
+  ownerId?: string;
+  storedRole: "admin" | "moderator" | "vip" | "member";
+  banned: boolean;
+  stageIndex: number;
+  stageLabel: string;
+  score: number;
+  grantedBadges: string[];
+  likes: number;
+  seeds: number;
+};
+
+export function adminListMembers(): AdminMember[] {
+  const db = read();
+  return Object.values(db.profiles)
+    .filter((p) => p.ownerId)
+    .map((p) => {
+      const u = p.ownerId ? db.users[p.ownerId] : undefined;
+      const score = u ? growthScore(u) : 0;
+      const { stage, index } = stageFor(score);
+      return {
+        slug: p.slug,
+        displayName: p.displayName,
+        avatarUrl: p.avatarUrl,
+        ownerId: p.ownerId,
+        storedRole: p.role ?? "member",
+        banned: !!p.banned,
+        stageIndex: index,
+        stageLabel: stage.label,
+        score,
+        grantedBadges: p.grantedBadges ?? [],
+        likes: p.likes?.length ?? 0,
+        seeds: p.seeds?.length ?? 0
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+export function adminSetBanned(slug: string, banned: boolean) {
+  const db = read();
+  const p = db.profiles[slug];
+  if (!p) return { ok: false as const, error: "No profile" };
+  p.banned = banned;
+  // Pull a banned member's active feed post so it leaves the feed immediately.
+  if (banned && p.ownerId) db.feedPosts = db.feedPosts.filter((f) => f.authorId !== p.ownerId);
+  cache = db;
+  write();
+  return { ok: true as const, banned };
+}
+
+export function adminSetRole(slug: string, role: "admin" | "moderator" | "vip" | "member") {
+  const db = read();
+  const p = db.profiles[slug];
+  if (!p) return { ok: false as const, error: "No profile" };
+  p.role = role;
+  cache = db;
+  write();
+  return { ok: true as const, role };
+}
+
+// Move a member's garden plant up/down by `delta` stages (admin override).
+export function adminAdjustStage(slug: string, delta: number) {
+  const db = read();
+  const p = db.profiles[slug];
+  if (!p?.ownerId) return { ok: false as const, error: "No member" };
+  let u = db.users[p.ownerId];
+  if (!u) u = ensureUser(p.ownerId, p.displayName);
+  const score = growthScore(u);
+  const { index } = stageFor(score);
+  const target = Math.max(0, Math.min(GROWTH_STAGES.length - 1, index + delta));
+  const targetMin = GROWTH_STAGES[target].min;
+  u.growthBonus = (u.growthBonus ?? 0) + (targetMin - score);
+  cache = db;
+  write();
+  return { ok: true as const, stageIndex: target, stageLabel: GROWTH_STAGES[target].label };
+}
+
+export function adminDeleteProfile(slug: string) {
+  const db = read();
+  const p = db.profiles[slug];
+  if (!p) return { ok: false as const, error: "No profile" };
+  const ownerId = p.ownerId;
+  delete db.profiles[slug];
+  if (ownerId) {
+    delete db.users[ownerId];
+    db.feedPosts = db.feedPosts.filter((f) => f.authorId !== ownerId);
+    db.pokes = db.pokes.filter((pk) => pk.toId !== ownerId && pk.fromId !== ownerId);
+  }
+  cache = db;
+  write();
+  return { ok: true as const };
 }
 
 // ---- Email/password accounts ----

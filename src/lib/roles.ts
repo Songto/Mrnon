@@ -23,7 +23,15 @@ export const ROLE_ORDER: Role[] = ["admin", "moderator", "vip", "member"];
 //   export const ADMIN_SLUGS = ["uni", "unipon", "new-admin-slug"];
 // (Anyone not listed is a regular member.)
 // ───────────────────────────────────────────────────────────────────────────
-export const ADMIN_SLUGS = ["uni", "unipon"];
+// You can also add admins WITHOUT editing code by setting an env var in Render:
+//   NEXT_PUBLIC_ADMIN_SLUGS = your-slug,another-slug
+// (then redeploy). Those are merged with the list below.
+const envAdminSlugs = (process.env.NEXT_PUBLIC_ADMIN_SLUGS || "")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
+export const ADMIN_SLUGS = ["uni", "unipon", ...envAdminSlugs];
 export const MOD_SLUGS: string[] = [];
 export const VIP_SLUGS: string[] = [];
 

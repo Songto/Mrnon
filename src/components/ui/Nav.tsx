@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { memberSlug } from "@/lib/members";
+import { isAdminSlug } from "@/lib/roles";
 import { clsx } from "@/lib/clsx";
 import { Avatar } from "./Avatar";
 import { CozyButton } from "./CozyButton";
@@ -29,6 +30,8 @@ export function Nav() {
     { href: "/garden", label: "Garden", icon: "leaf" },
     { href: profileHref, label: "Profile", icon: "user" }
   ];
+
+  const isAdmin = !!identity && isAdminSlug(memberSlug(identity.name));
 
   const isActive = (href: string) =>
     href === profileHref ? pathname === profileHref || pathname === "/profile" : pathname === href;
@@ -78,6 +81,15 @@ export function Nav() {
           </ul>
 
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="flex h-9 items-center rounded-full px-2 text-lg transition hover:bg-surface/70"
+                title="Admin panel"
+              >
+                🛠️
+              </Link>
+            )}
             <ThemeToggle />
             {ready && identity ? (
               <div className="flex items-center gap-2">
