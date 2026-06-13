@@ -3,6 +3,8 @@ import { parse } from "node:url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
 import { recordActivity, initStore, flushStore } from "./src/lib/db";
+import { isAdminSlug } from "./src/lib/roles";
+import { memberSlug } from "./src/lib/members";
 import {
   initialBoard,
   legalMoves,
@@ -335,6 +337,17 @@ app.prepare().then(async () => {
         name: current.seat.name,
         isTyping: Boolean(isTyping)
       });
+    });
+
+    // Clear a room's chat. In the public lobby only admins may clear; in a
+    // private room anyone present can. Empties history for everyone in the room.
+    socket.on("clear", () => {
+      if (!current) return;
+      const room = current.room;
+      if (room === LOBBY && !isAdminSlug(memberSlug(current.seat.name))) return;
+      history.set(room, []);
+      io.to(room).emit("history", []);
+      io.to(room).emit("chat:cleared", { by: current.seat.name });
     });
 
     socket.on("disconnect", () => {

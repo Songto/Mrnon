@@ -5,6 +5,8 @@ import { LOBBY } from "@/lib/rooms";
 import { useIdentity } from "@/lib/identity";
 import { useSocket } from "@/lib/socket-client";
 import { celebrateBadges, type BadgeToast } from "@/lib/toast";
+import { isAdminSlug } from "@/lib/roles";
+import { memberSlug } from "@/lib/members";
 import { clsx } from "@/lib/clsx";
 import { Avatar } from "../ui/Avatar";
 import { CozyButton } from "../ui/CozyButton";
@@ -134,6 +136,16 @@ export function ChatRoom() {
     setDraft("");
   };
 
+  const clearChat = () => {
+    if (!socket) return;
+    const ok = window.confirm(
+      isPrivate
+        ? "Clear this room's chat for everyone here?"
+        : "Clear the lobby chat for everyone?"
+    );
+    if (ok) socket.emit("clear");
+  };
+
   const addEmoji = (e: string) => {
     setDraft((d) => (d + e).slice(0, 300));
     if (socket) socket.emit("typing", true);
@@ -177,6 +189,8 @@ export function ChatRoom() {
   }
 
   const typingNames = Object.values(typers).filter((n) => n !== identity?.name);
+  // Private rooms: anyone present can clear. Public lobby: admins only.
+  const canClear = !!identity && (isPrivate || isAdminSlug(memberSlug(identity.name)));
 
   return (
     <div
@@ -268,20 +282,31 @@ export function ChatRoom() {
           <h2 className="flex items-center gap-2 text-lg">
             <span>{roomEmoji}</span> {roomName}
           </h2>
-          <span
-            className={clsx(
-              "flex items-center gap-1.5 text-xs",
-              connected ? "text-sage-deep" : "text-cocoa-soft"
+          <div className="flex items-center gap-3">
+            {canClear && (
+              <button
+                onClick={clearChat}
+                className="rounded-full px-2.5 py-1 text-xs text-cocoa-soft transition hover:bg-strawberry/15 hover:text-strawberry"
+                title={isPrivate ? "Clear this room's chat" : "Clear the lobby chat (admin)"}
+              >
+                🧹 Clear
+              </button>
             )}
-          >
             <span
               className={clsx(
-                "h-2 w-2 rounded-full",
-                connected ? "bg-sage-deep" : "bg-cocoa-soft/50"
+                "flex items-center gap-1.5 text-xs",
+                connected ? "text-sage-deep" : "text-cocoa-soft"
               )}
-            />
-            {connected ? "live" : "connecting…"}
-          </span>
+            >
+              <span
+                className={clsx(
+                  "h-2 w-2 rounded-full",
+                  connected ? "bg-sage-deep" : "bg-cocoa-soft/50"
+                )}
+              />
+              {connected ? "live" : "connecting…"}
+            </span>
+          </div>
         </div>
 
         <div

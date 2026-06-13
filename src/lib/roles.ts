@@ -12,11 +12,25 @@ export const ROLE_META: Record<Role, { label: string; emoji: string; color: stri
 
 export const ROLE_ORDER: Role[] = ["admin", "moderator", "vip", "member"];
 
-// Owner-managed role assignments by profile slug. Edit these lists to promote
-// people. (Anyone not listed is a regular member.)
+// ───────────────────────────────────────────────────────────────────────────
+// ADMINS / MODS / VIPs — edit these lists to promote people.
+//
+// Use a person's PROFILE SLUG: their display name, lowercased, with spaces
+// turned into dashes (e.g. name "Tea Mistress" → slug "tea-mistress").
+// Tip: open their profile and look at the address bar — /members/<slug>.
+//
+// To add another admin, just add their slug to the list, e.g.:
+//   export const ADMIN_SLUGS = ["uni", "unipon", "new-admin-slug"];
+// (Anyone not listed is a regular member.)
+// ───────────────────────────────────────────────────────────────────────────
 export const ADMIN_SLUGS = ["uni", "unipon"];
 export const MOD_SLUGS: string[] = [];
 export const VIP_SLUGS: string[] = [];
+
+// True if the given profile slug is an admin (used for the chat clear button etc.).
+export function isAdminSlug(slug: string): boolean {
+  return ADMIN_SLUGS.includes(slug);
+}
 
 export function roleForSlug(slug: string, stored?: Role): Role {
   if (ADMIN_SLUGS.includes(slug)) return "admin";
