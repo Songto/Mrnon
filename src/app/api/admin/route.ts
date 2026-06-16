@@ -1,28 +1,27 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { memberSlug } from "@/lib/members";
-import { isAdminSlug } from "@/lib/roles";
+import { isAdminUserId } from "@/lib/roles";
 import {
   adminListMembers,
   adminSetBanned,
   adminSetRole,
   adminAdjustStage,
   adminDeleteProfile,
-  grantProfileBadge
+  grantProfileBadge,
+  getProfile
 } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 const ROLES = ["admin", "moderator", "vip", "member"] as const;
 
-// Returns the caller's admin slug, or null if they're not an admin.
+// Returns the caller's account id if they're an admin, else null. Identity is
+// taken from the verified server session (Discord login) — not spoofable.
 async function requireAdmin(): Promise<string | null> {
   const session = await getServerSession(authOptions);
-  const name = session?.user?.name;
-  if (!name) return null;
-  const slug = memberSlug(name);
-  return isAdminSlug(slug) ? slug : null;
+  const uid = (session?.user as { uid?: string } | undefined)?.uid;
+  return isAdminUserId(uid) ? uid! : null;
 }
 
 export async function GET() {
@@ -40,9 +39,12 @@ export async function POST(req: Request) {
   const slug = (body?.slug || "").toString();
   if (!slug) return NextResponse.json({ error: "Missing member" }, { status: 400 });
 
-  // Don't let an admin lock themselves out.
-  if (slug === admin && (action === "ban" || action === "delete")) {
-    return NextResponse.json({ error: "You can't ban or delete your own account." }, { status: 400 });
+  // Don't let an admin lock themselves out (compare the target's owner account).
+  if (action === "ban" || action === "delete") {
+    const owner = getProfile(slug).ownerId;
+    if (owner && owner === admin) {
+      return NextResponse.json({ error: "You can't ban or delete your own account." }, { status: 400 });
+    }
   }
 
   switch (action) {

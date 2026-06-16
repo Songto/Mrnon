@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { memberSlug } from "@/lib/members";
-import { isAdminSlug } from "@/lib/roles";
+import { isAdminUserId } from "@/lib/roles";
 import { clsx } from "@/lib/clsx";
 import { Avatar } from "./Avatar";
 import { CozyButton } from "./CozyButton";
@@ -31,7 +31,7 @@ export function Nav() {
     { href: profileHref, label: "Profile", icon: "user" }
   ];
 
-  const isAdmin = !!identity && isAdminSlug(memberSlug(identity.name));
+  const isAdmin = isAdminUserId(identity?.userId);
 
   const isActive = (href: string) =>
     href === profileHref ? pathname === profileHref || pathname === "/profile" : pathname === href;

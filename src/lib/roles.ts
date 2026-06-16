@@ -35,9 +35,32 @@ export const ADMIN_SLUGS = ["uni", "unipon", ...envAdminSlugs];
 export const MOD_SLUGS: string[] = [];
 export const VIP_SLUGS: string[] = [];
 
-// True if the given profile slug is an admin (used for the chat clear button etc.).
+// True if the given profile slug is an admin (used for cosmetic 👑 role only).
 export function isAdminSlug(slug: string): boolean {
   return ADMIN_SLUGS.includes(slug);
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// ADMIN POWERS are keyed off the logged-in ACCOUNT (Discord ID), which can't
+// be spoofed by just copying someone's display name. To add another admin,
+// add their Discord user ID below, or set NEXT_PUBLIC_ADMIN_DISCORD_IDS in
+// Render (comma-separated) and redeploy.
+// ───────────────────────────────────────────────────────────────────────────
+const envAdminDiscordIds = (process.env.NEXT_PUBLIC_ADMIN_DISCORD_IDS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+export const ADMIN_DISCORD_IDS = ["295934353903452170", ...envAdminDiscordIds];
+
+// Identity userIds look like "discord:<id>", "email:<addr>", or "guest:<name>".
+// Admin powers require a Discord account whose id is in the allow-list.
+export function isAdminUserId(userId?: string | null): boolean {
+  if (!userId) return false;
+  if (userId.startsWith("discord:")) {
+    return ADMIN_DISCORD_IDS.includes(userId.slice("discord:".length));
+  }
+  return false;
 }
 
 export function roleForSlug(slug: string, stored?: Role): Role {

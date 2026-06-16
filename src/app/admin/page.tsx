@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
-import { memberSlug } from "@/lib/members";
-import { isAdminSlug, ROLE_META, type Role } from "@/lib/roles";
+import { isAdminUserId, ROLE_META, type Role } from "@/lib/roles";
 import { Avatar } from "@/components/ui/Avatar";
 
 const roleMeta = (r: Role) => ROLE_META[r] ?? ROLE_META.member;
@@ -30,7 +29,7 @@ const GRANTABLE = [
 
 export default function AdminPage() {
   const { identity, ready } = useIdentity();
-  const isAdmin = !!identity && isAdminSlug(memberSlug(identity.name));
+  const isAdmin = isAdminUserId(identity?.userId);
   const [members, setMembers] = useState<AdminMember[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);

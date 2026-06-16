@@ -3,8 +3,7 @@ import { parse } from "node:url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
 import { recordActivity, initStore, flushStore } from "./src/lib/db";
-import { isAdminSlug } from "./src/lib/roles";
-import { memberSlug } from "./src/lib/members";
+import { isAdminUserId } from "./src/lib/roles";
 import {
   initialBoard,
   legalMoves,
@@ -344,7 +343,7 @@ app.prepare().then(async () => {
     socket.on("clear", () => {
       if (!current) return;
       const room = current.room;
-      if (room === LOBBY && !isAdminSlug(memberSlug(current.seat.name))) return;
+      if (room === LOBBY && !isAdminUserId(current.seat.userId)) return;
       history.set(room, []);
       io.to(room).emit("history", []);
       io.to(room).emit("chat:cleared", { by: current.seat.name });

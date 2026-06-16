@@ -5,8 +5,7 @@ import { LOBBY } from "@/lib/rooms";
 import { useIdentity } from "@/lib/identity";
 import { useSocket } from "@/lib/socket-client";
 import { celebrateBadges, type BadgeToast } from "@/lib/toast";
-import { isAdminSlug } from "@/lib/roles";
-import { memberSlug } from "@/lib/members";
+import { isAdminUserId } from "@/lib/roles";
 import { clsx } from "@/lib/clsx";
 import { Avatar } from "../ui/Avatar";
 import { CozyButton } from "../ui/CozyButton";
@@ -190,7 +189,7 @@ export function ChatRoom() {
 
   const typingNames = Object.values(typers).filter((n) => n !== identity?.name);
   // Private rooms: anyone present can clear. Public lobby: admins only.
-  const canClear = !!identity && (isPrivate || isAdminSlug(memberSlug(identity.name)));
+  const canClear = !!identity && (isPrivate || isAdminUserId(identity.userId));
 
   return (
     <div
