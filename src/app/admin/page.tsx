@@ -6,6 +6,8 @@ import { memberSlug } from "@/lib/members";
 import { isAdminSlug, ROLE_META, type Role } from "@/lib/roles";
 import { Avatar } from "@/components/ui/Avatar";
 
+const roleMeta = (r: Role) => ROLE_META[r] ?? ROLE_META.member;
+
 type AdminMember = {
   slug: string;
   displayName: string;
@@ -61,7 +63,8 @@ export default function AdminPage() {
     load();
   };
 
-  if (ready && !isAdmin) {
+  if (!ready) return null;
+  if (!isAdmin) {
     return (
       <div className="cozy-card mx-auto mt-10 max-w-md p-10 text-center">
         <div className="text-5xl">🔒</div>
@@ -113,8 +116,8 @@ export default function AdminPage() {
               <div className="min-w-0">
                 <p className="truncate font-display">
                   {m.displayName}{" "}
-                  <span className="text-xs" title={ROLE_META[m.storedRole].label}>
-                    {ROLE_META[m.storedRole].emoji}
+                  <span className="text-xs" title={roleMeta(m.storedRole).label}>
+                    {roleMeta(m.storedRole).emoji}
                   </span>
                   {m.banned && <span className="ml-1 text-[11px] text-strawberry">· banned</span>}
                 </p>
@@ -136,7 +139,7 @@ export default function AdminPage() {
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_META[r].emoji} {r}
+                    {roleMeta(r).emoji} {r}
                   </option>
                 ))}
               </select>

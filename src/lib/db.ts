@@ -978,7 +978,13 @@ export function listFeed(): FeedPost[] {
     cache = db;
     write();
   }
-  return [...db.feedPosts].sort((a, b) => b.createdAt - a.createdAt);
+  // Hide posts from banned members (matches members/garden/top listings).
+  const bannedIds = new Set(
+    Object.values(db.profiles).filter((p) => p.banned && p.ownerId).map((p) => p.ownerId)
+  );
+  return [...db.feedPosts]
+    .filter((p) => !bannedIds.has(p.authorId))
+    .sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export function createFeedPost(input: {
