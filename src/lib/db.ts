@@ -210,13 +210,16 @@ async function getPg(): Promise<import("pg").Pool | null> {
   // module namespace or under `.default`, so accept either.
   const mod = await import("pg");
   const Pool = mod.Pool ?? (mod as unknown as { default: typeof import("pg") }).default.Pool;
-  // Verify the database's TLS certificate by default (prevents MITM). Some
-  // managed hosts serve certs that don't chain to a public CA; only for those
-  // set PGSSL_NO_VERIFY=1 to fall back to the old (unverified) behaviour.
+  // The connection is always encrypted (sslmode=require). Certificate
+  // VERIFICATION is off by default because some managed Postgres (incl. common
+  // Neon/Render pooler setups) serve certs that don't validate against Node's
+  // CA bundle — turning it on by default risks breaking the live DB connection
+  // and silently falling back to ephemeral local storage. Set PGSSL_STRICT=1 to
+  // enable full verification once you've confirmed your host's cert validates.
   const ssl =
-    process.env.PGSSL_NO_VERIFY === "1"
-      ? { rejectUnauthorized: false }
-      : { rejectUnauthorized: true };
+    process.env.PGSSL_STRICT === "1"
+      ? { rejectUnauthorized: true }
+      : { rejectUnauthorized: false };
   pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl,
