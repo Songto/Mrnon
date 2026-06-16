@@ -34,7 +34,7 @@ export default function HomePage() {
   return (
     <div className="space-y-10">
       {/* Hero */}
-      <section className="grid items-center gap-8 lg:grid-cols-2">
+      <section className="fade-up grid items-center gap-8 lg:grid-cols-2">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -82,7 +82,7 @@ export default function HomePage() {
       </section>
 
       {/* Top members + features */}
-      <section className="grid gap-6 lg:grid-cols-[360px_1fr]">
+      <section className="fade-up grid gap-6 lg:grid-cols-[360px_1fr]" style={{ animationDelay: "0.1s" }}>
         <TopMembers />
         <div className="grid gap-4 sm:grid-cols-3">
           {FEATURES.map((f) => (
@@ -108,7 +108,7 @@ export default function HomePage() {
       </section>
 
       {/* Cozy footer note */}
-      <section className="cozy-card flex flex-col items-center gap-2 p-8 text-center">
+      <section className="fade-up cozy-card flex flex-col items-center gap-2 p-8 text-center" style={{ animationDelay: "0.2s" }}>
         <span className="text-4xl animate-float-slow">🌙🫖🌿</span>
         <h2 className="text-2xl">Stay a while</h2>
         <p className="max-w-lg text-sm text-cocoa-soft">

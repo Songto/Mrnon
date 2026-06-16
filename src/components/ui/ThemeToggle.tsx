@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icon } from "./Icon";
 
 // Flips the `dark` class on <html> and remembers the choice. The initial class
 // is set by an inline script in layout.tsx (so there's no flash of the wrong
@@ -28,9 +29,9 @@ export function ThemeToggle() {
       onClick={toggle}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-label="Toggle dark mode"
-      className="flex h-9 w-9 items-center justify-center rounded-full text-lg transition hover:bg-surface/70"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-cocoa-soft transition hover:bg-surface/70 hover:text-cocoa"
     >
-      {dark ? "☀️" : "🌙"}
+      <Icon name={dark ? "sun" : "moon"} size={18} />
     </button>
   );
 }

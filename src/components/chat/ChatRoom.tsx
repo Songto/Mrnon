@@ -8,6 +8,7 @@ import { celebrateBadges, type BadgeToast } from "@/lib/toast";
 import { isAdminUserId } from "@/lib/roles";
 import { clsx } from "@/lib/clsx";
 import { Avatar } from "../ui/Avatar";
+import { Icon } from "../ui/Icon";
 import { CozyButton } from "../ui/CozyButton";
 import { IdentityModal } from "../ui/IdentityModal";
 import { type Seat } from "./TeaTable";
@@ -285,10 +286,10 @@ export function ChatRoom() {
             {canClear && (
               <button
                 onClick={clearChat}
-                className="rounded-full px-2.5 py-1 text-xs text-cocoa-soft transition hover:bg-strawberry/15 hover:text-strawberry"
+                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs text-cocoa-soft transition hover:bg-strawberry/15 hover:text-strawberry"
                 title={isPrivate ? "Clear this room's chat" : "Clear the lobby chat (admin)"}
               >
-                🧹 Clear
+                <Icon name="trash" size={14} /> Clear
               </button>
             )}
             <span

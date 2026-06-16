@@ -84,10 +84,10 @@ export function Nav() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="flex h-9 items-center rounded-full px-2 text-lg transition hover:bg-surface/70"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-cocoa-soft transition hover:bg-surface/70 hover:text-strawberry"
                 title="Admin panel"
               >
-                🛠️
+                <Icon name="shield" size={18} />
               </Link>
             )}
             <ThemeToggle />
