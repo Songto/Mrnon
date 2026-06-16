@@ -2,6 +2,7 @@ import Link from "next/link";
 import { teaOfTheDay } from "@/lib/tea";
 import { TopMembers } from "@/components/TopMembers";
 import { TeaOfTheDay } from "@/components/TeaOfTheDay";
+import { CozyMascot } from "@/components/CozyMascot";
 import { CozyLinkButton } from "@/components/ui/CozyButton";
 
 const FEATURES = [
@@ -109,7 +110,7 @@ export default function HomePage() {
 
       {/* Cozy footer note */}
       <section className="fade-up cozy-card flex flex-col items-center gap-2 p-8 text-center" style={{ animationDelay: "0.2s" }}>
-        <span className="text-4xl animate-float-slow">🌙🫖🌿</span>
+        <CozyMascot size={128} />
         <h2 className="text-2xl">Stay a while</h2>
         <p className="max-w-lg text-sm text-cocoa-soft">
           Turn on the rain or fireplace with the music button in the corner, draw a fortune
