@@ -8,6 +8,23 @@ export const discordConfigured = Boolean(
   process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
 );
 
+// The secret used to sign session JWTs. A weak/known secret means anyone can
+// forge a session (e.g. mint themselves an admin token). The server enforces a
+// real secret at startup in production (see assertAuthSecret, called from
+// server.ts) — we don't throw here so that `next build` (which runs without the
+// runtime secret) still works. The dev fallback keeps local runs zero-config.
+export const authSecret = process.env.NEXTAUTH_SECRET || "ourchat-dev-secret-change-me";
+
+// Call once at runtime startup. Refuses to run in production without a real,
+// configured secret rather than silently signing tokens with a known value.
+export function assertAuthSecret(): void {
+  if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_SECRET?.trim()) {
+    throw new Error(
+      "NEXTAUTH_SECRET is not set. Set a strong, random secret before deploying."
+    );
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // Email + password accounts (always available).
@@ -39,7 +56,7 @@ export const authOptions: NextAuthOptions = {
       : [])
   ],
   pages: { signIn: "/login" },
-  secret: process.env.NEXTAUTH_SECRET || "ourchat-dev-secret-change-me",
+  secret: authSecret,
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user, profile }) {

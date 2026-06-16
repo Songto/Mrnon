@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useIdentity, randomGuestName } from "@/lib/identity";
+import { useIdentity } from "@/lib/identity";
 import { CozyButton } from "@/components/ui/CozyButton";
 
 type Mode = "login" | "register";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { discordEnabled, setGuestName } = useIdentity();
+  const { discordEnabled } = useIdentity();
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -43,11 +43,6 @@ export default function LoginPage() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const guest = () => {
-    setGuestName(randomGuestName());
-    router.push("/");
   };
 
   return (
@@ -125,12 +120,6 @@ export default function LoginPage() {
             </CozyButton>
           </>
         )}
-
-        <div className="mt-4 text-center text-xs text-cocoa-soft">
-          <button onClick={guest} className="underline hover:text-strawberry">
-            or just look around as a guest →
-          </button>
-        </div>
 
         <p className="mt-4 text-center text-[10px] text-cocoa-soft">
           By continuing you agree to our{" "}

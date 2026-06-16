@@ -2,8 +2,14 @@ import { createServer } from "node:http";
 import { parse } from "node:url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
+import { getToken } from "next-auth/jwt";
 import { recordActivity, initStore, flushStore } from "./src/lib/db";
 import { isAdminUserId } from "./src/lib/roles";
+import { resolveActor } from "./src/lib/actor";
+import { authSecret, assertAuthSecret } from "./src/lib/auth";
+
+// Fail fast if we'd otherwise sign session tokens with a known dev secret.
+assertAuthSecret();
 import {
   initialBoard,
   legalMoves,
@@ -137,6 +143,34 @@ function onlineUsers(): { userId: string; name: string; avatar?: string }[] {
   return Array.from(seen.values());
 }
 
+// In production NEXTAUTH_URL is https, so NextAuth uses the "__Secure-" cookie.
+const SECURE_COOKIE = (process.env.NEXTAUTH_URL || "").startsWith("https://");
+
+// Resolve the *verified* logged-in identity from the handshake's session
+// cookie. Returns null for guests (no session) — they're handled by resolveActor.
+async function verifiedFromCookie(cookie?: string) {
+  if (!cookie) return null;
+  try {
+    const token = await getToken({
+      // getToken only reads cookies; a minimal req with the cookie header is enough.
+      req: { headers: { cookie } } as unknown as Parameters<typeof getToken>[0]["req"],
+      secret: authSecret,
+      secureCookie: SECURE_COOKIE
+    });
+    if (token?.uid) {
+      return {
+        uid: token.uid as string,
+        name: (token.name as string | undefined) ?? null,
+        avatar: (token.picture as string | undefined) ?? null,
+        source: (token.source as string | undefined) ?? "discord"
+      };
+    }
+  } catch {
+    /* unreadable/forged cookie — treat as anonymous */
+  }
+  return null;
+}
+
 app.prepare().then(async () => {
   // Load the persisted store (database when DATABASE_URL is set, else the
   // local file) before we start accepting connections.
@@ -173,9 +207,16 @@ app.prepare().then(async () => {
 
     socket.on(
       "join",
-      (payload: { room: string; userId: string; name: string; avatar?: string }) => {
-        const { room, userId, name, avatar } = payload;
-        if (!room || !name) return;
+      async (payload: { room: string; userId: string; name: string; avatar?: string }) => {
+        const { room } = payload;
+        if (!room) return;
+
+        // Identity is taken from the verified session cookie — NEVER the userId
+        // the client claims. This stops anyone joining as someone else / spoofing
+        // the admin id. No session => not allowed to join (guest mode is off).
+        const verified = await verifiedFromCookie(socket.handshake.headers.cookie);
+        const actor = resolveActor(verified);
+        if (!actor) return;
 
         // Leave any previous room first.
         if (current) {
@@ -187,7 +228,12 @@ app.prepare().then(async () => {
           cleanupIfEmpty(current.room);
         }
 
-        const seat: Seat = { socketId: socket.id, userId, name, avatar };
+        const seat: Seat = {
+          socketId: socket.id,
+          userId: actor.userId,
+          name: actor.name,
+          avatar: actor.avatar
+        };
         if (!roster.has(room)) roster.set(room, new Map());
         roster.get(room)!.set(socket.id, seat);
         socket.join(room);

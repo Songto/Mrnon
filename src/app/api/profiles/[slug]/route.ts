@@ -7,10 +7,10 @@ import {
   reportProfile,
   toggleProfileLike,
   grantProfileBadge,
-  isAdminUser,
   earnedAdvancedBadges
 } from "@/lib/db";
-import { ADMIN_SLUGS } from "@/lib/roles";
+import { getActor } from "@/lib/actor";
+import { isAdminUserId } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,9 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
   return NextResponse.json({ profile, earnedBadges: earnedAdvancedBadges(params.slug) });
 }
 
-// POST { action: "save" | "comment" | "report" | "delete-comment", ... }
+// POST { action: "save" | "comment" | "report" | "delete-comment" | "like" | "grant-badge", ... }
+// The acting identity ALWAYS comes from the verified session (or an anonymous
+// guest) — never from ids in the request body.
 export async function POST(req: Request, { params }: { params: { slug: string } }) {
   const slug = params.slug;
   const body = await req.json().catch(() => null);
@@ -27,63 +29,59 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
+  const actor = await getActor();
+  if (!actor) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
+
   if (body.action === "save") {
-    if (!body.editorId || !body.editorName) {
-      return NextResponse.json({ error: "Who are you?" }, { status: 400 });
-    }
-    const result = saveProfile(slug, body.patch ?? {}, body.editorId, body.editorName);
+    const result = saveProfile(slug, body.patch ?? {}, actor.userId, actor.name);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
     return NextResponse.json({ ok: true, profile: result.profile });
   }
 
   if (body.action === "comment") {
-    if (!body.authorId || !body.authorName || !body.text) {
-      return NextResponse.json({ error: "Missing comment fields" }, { status: 400 });
-    }
-    const result = addProfileComment(slug, {
-      authorId: body.authorId,
-      authorName: body.authorName,
-      authorAvatar: body.authorAvatar,
-      text: body.text
-    }, body.displayName);
+    if (!body.text) return NextResponse.json({ error: "Missing comment text" }, { status: 400 });
+    const result = addProfileComment(
+      slug,
+      {
+        authorId: actor.userId,
+        authorName: actor.name,
+        authorAvatar: actor.avatar,
+        text: String(body.text)
+      },
+      actor.name
+    );
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
     return NextResponse.json({ ok: true, comment: result.comment });
   }
 
   if (body.action === "delete-comment") {
-    if (!body.commentId || !body.requesterId) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-    }
-    const result = deleteProfileComment(slug, body.commentId, body.requesterId);
+    if (!body.commentId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const result = deleteProfileComment(slug, String(body.commentId), actor.userId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
     return NextResponse.json({ ok: true });
   }
 
   if (body.action === "like") {
-    if (!body.userId) return NextResponse.json({ error: "Missing user" }, { status: 400 });
-    const result = toggleProfileLike(slug, body.userId);
+    const result = toggleProfileLike(slug, actor.userId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
     return NextResponse.json(result);
   }
 
   if (body.action === "grant-badge") {
-    if (!body.granterId || !body.badge) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-    }
-    const result = grantProfileBadge(slug, body.badge, isAdminUser(body.granterId, ADMIN_SLUGS));
+    if (!body.badge) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    // Admin powers are keyed off the verified account id — not a body field.
+    const result = grantProfileBadge(slug, String(body.badge), isAdminUserId(actor.userId));
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
     return NextResponse.json({ ok: true, grantedBadges: result.grantedBadges });
   }
 
   if (body.action === "report") {
-    if (!body.reporterId || !body.reason) {
-      return NextResponse.json({ error: "Missing report fields" }, { status: 400 });
-    }
+    if (!body.reason) return NextResponse.json({ error: "Missing report fields" }, { status: 400 });
     const entry = reportProfile({
       slug,
-      reporterId: body.reporterId,
-      reporterName: body.reporterName || "Someone",
-      reason: body.reason
+      reporterId: actor.userId,
+      reporterName: actor.name,
+      reason: String(body.reason)
     });
     return NextResponse.json({ ok: true, id: entry.id });
   }

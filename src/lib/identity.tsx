@@ -1,18 +1,17 @@
 "use client";
 
-// A unified "who am I" hook that works in both modes:
-//  - Discord OAuth session (real login), or
-//  - a demo guest name stored in localStorage.
-// Components just read `useIdentity()` and don't care which mode is active.
+// A unified "who am I" hook. Identity comes solely from a real login —
+// Discord OAuth or an email/password account. There is no guest mode.
+// Components read `useIdentity()`; when `identity` is null, prompt a sign-in.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 export type Identity = {
   userId: string;
   name: string;
   avatar?: string;
-  source: "discord" | "email" | "guest";
+  source: "discord" | "email";
 };
 
 type IdentityContext = {
@@ -20,22 +19,10 @@ type IdentityContext = {
   ready: boolean;
   discordEnabled: boolean;
   loginWithDiscord: () => void;
-  setGuestName: (name: string) => void;
   logout: () => void;
 };
 
 const Ctx = createContext<IdentityContext | null>(null);
-
-const GUEST_KEY = "ourchat:guest-name";
-
-const CUTE_NAMES = [
-  "SleepyFox", "MochiBun", "PetalPip", "MapleWhisk", "BeanSprout",
-  "CloudKitten", "HoneyMoth", "PixelPlum", "DewDrop", "CozyCub"
-];
-
-export function randomGuestName() {
-  return CUTE_NAMES[Math.floor(Math.random() * CUTE_NAMES.length)] + Math.floor(Math.random() * 90 + 10);
-}
 
 export function IdentityProvider({
   discordEnabled,
@@ -45,47 +32,15 @@ export function IdentityProvider({
   children: React.ReactNode;
 }) {
   const { data: session, status } = useSession();
-  const [guestName, setGuestNameState] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setHydrated(true);
-    try {
-      const saved = localStorage.getItem(GUEST_KEY);
-      if (saved) setGuestNameState(saved);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const setGuestName = useCallback((name: string) => {
-    const clean = name.trim().slice(0, 24);
-    if (!clean) return;
-    setGuestNameState(clean);
-    try {
-      localStorage.setItem(GUEST_KEY, clean);
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   const logout = useCallback(() => {
-    if (session) {
-      // Don't let NextAuth do the redirect — if NEXTAUTH_URL is misconfigured
-      // in production it would bounce the browser to a dead address. Clear the
-      // session, then navigate home ourselves on the current origin.
-      signOut({ redirect: false }).finally(() => {
-        window.location.href = "/";
-      });
-      return;
-    }
-    setGuestNameState(null);
-    try {
-      localStorage.removeItem(GUEST_KEY);
-    } catch {
-      /* ignore */
-    }
-  }, [session]);
+    // Don't let NextAuth do the redirect — if NEXTAUTH_URL is misconfigured in
+    // production it would bounce the browser to a dead address. Clear the
+    // session, then navigate home ourselves on the current origin.
+    signOut({ redirect: false }).finally(() => {
+      window.location.href = "/";
+    });
+  }, []);
 
   const identity: Identity | null = useMemo(() => {
     if (session?.user) {
@@ -93,27 +48,19 @@ export function IdentityProvider({
       const uid = su.uid || `discord:${session.user.name}`;
       return {
         userId: uid,
-        name: session.user.name || "Guest",
+        name: session.user.name || "Member",
         avatar: session.user.image || undefined,
         source: su.source === "email" ? "email" : "discord"
       };
     }
-    if (guestName) {
-      return {
-        userId: "guest:" + guestName.toLowerCase().replace(/\s+/g, "-"),
-        name: guestName,
-        source: "guest"
-      };
-    }
     return null;
-  }, [session, guestName]);
+  }, [session]);
 
   const value: IdentityContext = {
     identity,
-    ready: hydrated && status !== "loading",
+    ready: status !== "loading",
     discordEnabled,
     loginWithDiscord: () => signIn("discord"),
-    setGuestName,
     logout
   };
 

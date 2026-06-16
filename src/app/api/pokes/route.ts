@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { pokeUser, listPokes, markPokesSeen, clearPoke } from "@/lib/db";
+import { getActor } from "@/lib/actor";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,21 +14,27 @@ export async function GET(req: Request) {
 }
 
 // POST { action: "poke" | "seen" | "clear", ... }
+// The acting identity comes from the verified session (or a guest), so a caller
+// can only poke/clear AS themselves — never on behalf of someone else.
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body || typeof body.action !== "string") {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
+  const actor = await getActor();
+  if (!actor) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
+
   if (body.action === "poke") {
-    if (!body.toId || !body.fromId || !body.fromName) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!body.toId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!rateLimit(`poke:${actor.userId}`, 30, 60_000)) {
+      return NextResponse.json({ error: "That's a lot of pokes — give it a sec 👉👈" }, { status: 429 });
     }
     const result = pokeUser({
-      toId: body.toId,
-      fromId: body.fromId,
-      fromName: body.fromName,
-      fromAvatar: body.fromAvatar,
+      toId: String(body.toId),
+      fromId: actor.userId,
+      fromName: actor.name,
+      fromAvatar: actor.avatar,
       fromSlug: body.fromSlug || ""
     });
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
@@ -34,16 +42,13 @@ export async function POST(req: Request) {
   }
 
   if (body.action === "seen") {
-    if (!body.user) return NextResponse.json({ error: "Missing user" }, { status: 400 });
-    markPokesSeen(body.user);
+    markPokesSeen(actor.userId);
     return NextResponse.json({ ok: true });
   }
 
   if (body.action === "clear") {
-    if (!body.pokeId || !body.user) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-    }
-    const result = clearPoke(body.pokeId, body.user);
+    if (!body.pokeId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const result = clearPoke(String(body.pokeId), actor.userId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 403 });
     return NextResponse.json({ ok: true });
   }

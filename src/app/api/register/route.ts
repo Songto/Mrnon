@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { createAuthUser } from "@/lib/db";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
 // POST { email, name, password } -> create an email/password account.
 export async function POST(req: Request) {
+  // bcrypt hashing is intentionally slow; without a limit this endpoint is a
+  // cheap CPU-exhaustion (DoS) vector. Cap signups per IP.
+  if (!rateLimit(`register:${clientIp(req)}`, 5, 10 * 60_000)) {
+    return NextResponse.json({ error: "Too many sign-up attempts. Try again later." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   const email = (body?.email || "").toString();
   const name = (body?.name || "").toString();

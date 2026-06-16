@@ -1,18 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useIdentity, randomGuestName } from "@/lib/identity";
+import Link from "next/link";
+import { useIdentity } from "@/lib/identity";
 import { CozyButton } from "./CozyButton";
 
 export function IdentityModal({ onClose }: { onClose: () => void }) {
-  const { discordEnabled, loginWithDiscord, setGuestName } = useIdentity();
-  const [name, setName] = useState("");
-
-  const submitGuest = () => {
-    const chosen = name.trim() || randomGuestName();
-    setGuestName(chosen);
-    onClose();
-  };
+  const { discordEnabled, loginWithDiscord } = useIdentity();
 
   return (
     <div
@@ -27,44 +20,32 @@ export function IdentityModal({ onClose }: { onClose: () => void }) {
           <div className="text-5xl">🫖</div>
           <h2 className="mt-2 text-2xl">Pull up a chair</h2>
           <p className="mt-1 text-sm text-cocoa-soft">
-            Tell us what to call you, and the table is yours.
+            Sign in to join the teaparty, keep your profile, and chat.
           </p>
         </div>
 
         {discordEnabled && (
-          <>
-            <CozyButton
-              variant="discord"
-              className="mt-5 w-full"
-              onClick={() => loginWithDiscord()}
-            >
-              <DiscordGlyph /> Sign in with Discord
-            </CozyButton>
-            <div className="my-4 flex items-center gap-3 text-xs text-cocoa-soft">
-              <span className="h-px flex-1 bg-cocoa/15" /> or join as a guest{" "}
-              <span className="h-px flex-1 bg-cocoa/15" />
-            </div>
-          </>
+          <CozyButton
+            variant="discord"
+            className="mt-5 w-full"
+            onClick={() => loginWithDiscord()}
+          >
+            <DiscordGlyph /> Sign in with Discord
+          </CozyButton>
         )}
 
-        <label className="block text-sm font-display text-cocoa">Your cozy name</label>
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submitGuest()}
-          placeholder={randomGuestName()}
-          maxLength={24}
-          className="mt-1 w-full rounded-2xl border border-rose/40 bg-surface/80 px-4 py-2.5 outline-none focus:border-rose-deep"
-        />
-        <CozyButton className="mt-4 w-full" onClick={submitGuest}>
-          Enter the parlor ✨
-        </CozyButton>
-        {!discordEnabled && (
-          <p className="mt-3 text-center text-xs text-cocoa-soft">
-            Demo mode — add Discord keys to <code>.env</code> to enable real login.
-          </p>
+        {discordEnabled && (
+          <div className="my-4 flex items-center gap-3 text-xs text-cocoa-soft">
+            <span className="h-px flex-1 bg-cocoa/15" /> or{" "}
+            <span className="h-px flex-1 bg-cocoa/15" />
+          </div>
         )}
+
+        <Link href="/login" onClick={onClose} className="block">
+          <CozyButton variant={discordEnabled ? "soft" : "primary"} className="w-full">
+            Log in or sign up with email ✉️
+          </CozyButton>
+        </Link>
       </div>
     </div>
   );

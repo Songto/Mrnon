@@ -8,6 +8,7 @@ import {
   seedStateFor,
   rollDailySeed
 } from "@/lib/db";
+import { getActor } from "@/lib/actor";
 
 export const dynamic = "force-dynamic";
 
@@ -49,16 +50,18 @@ export async function POST(req: Request) {
   if (!body || typeof body.action !== "string") {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
+  const actor = await getActor();
+  if (!actor) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
+
   if (body.action === "roll") {
-    if (!body.userId) return NextResponse.json({ error: "Missing user" }, { status: 400 });
-    const result = rollDailySeed(body.userId);
+    const result = rollDailySeed(actor.userId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
     return NextResponse.json(result);
   }
-  if (body.action !== "water" || !body.targetId || !body.gardenerId) {
+  if (body.action !== "water" || !body.targetId) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
-  const result = waterPlant(body.targetId, body.gardenerId, body.gardenerName || "Guest");
+  const result = waterPlant(String(body.targetId), actor.userId, actor.name);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 404 });
   return NextResponse.json({
     ok: true,

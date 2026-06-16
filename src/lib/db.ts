@@ -210,9 +210,16 @@ async function getPg(): Promise<import("pg").Pool | null> {
   // module namespace or under `.default`, so accept either.
   const mod = await import("pg");
   const Pool = mod.Pool ?? (mod as unknown as { default: typeof import("pg") }).default.Pool;
+  // Verify the database's TLS certificate by default (prevents MITM). Some
+  // managed hosts serve certs that don't chain to a public CA; only for those
+  // set PGSSL_NO_VERIFY=1 to fall back to the old (unverified) behaviour.
+  const ssl =
+    process.env.PGSSL_NO_VERIFY === "1"
+      ? { rejectUnauthorized: false }
+      : { rejectUnauthorized: true };
   pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    ssl,
     max: 4
   });
   await pgPool.query("CREATE TABLE IF NOT EXISTS ourchat_store (id int PRIMARY KEY, data jsonb NOT NULL)");
