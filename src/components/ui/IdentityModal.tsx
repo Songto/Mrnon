@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useIdentity } from "@/lib/identity";
 import { CozyButton } from "./CozyButton";
+import { CozyGlyph, Emoji } from "./CozyGlyph";
 
 export function IdentityModal({ onClose }: { onClose: () => void }) {
   const { discordEnabled, loginWithDiscord } = useIdentity();
@@ -17,7 +18,7 @@ export function IdentityModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center">
-          <div className="text-5xl">🫖</div>
+          <div><CozyGlyph name="teapot" size={52} /></div>
           <h2 className="mt-2 text-2xl">Pull up a chair</h2>
           <p className="mt-1 text-sm text-cocoa-soft">
             Sign in to join the teaparty, keep your profile, and chat.
@@ -43,7 +44,7 @@ export function IdentityModal({ onClose }: { onClose: () => void }) {
 
         <Link href="/login" onClick={onClose} className="block">
           <CozyButton variant={discordEnabled ? "soft" : "primary"} className="w-full">
-            Log in or sign up with email ✉️
+            Log in or sign up with email <Emoji char="✉️" size={16} className="ml-1" />
           </CozyButton>
         </Link>
       </div>

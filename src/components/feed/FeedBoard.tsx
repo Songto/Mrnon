@@ -7,6 +7,7 @@ import { memberSlug } from "@/lib/members";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 type Comment = {
   id: string;
@@ -276,7 +277,7 @@ export function FeedBoard() {
       {/* Composer */}
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
         <div className="cozy-card p-5" style={{ borderColor: `${vibe.accent}55` }}>
-          <h2 className="text-lg">Looking for a friend? 🌷</h2>
+          <h2 className="inline-flex items-center gap-1 text-lg">Looking for a friend? <Emoji char="🌷" size={18} /></h2>
           <p className="mt-1 text-xs text-cocoa-soft">
             Post a little card and it floats on the feed for <b>90 minutes</b>. One per person —
             posting again refreshes yours.
@@ -294,7 +295,7 @@ export function FeedBoard() {
                     : { background: "rgba(90,70,54,0.07)", color: "#6E5645" }
                 }
               >
-                {v.emoji} {v.label}
+                <Emoji char={v.emoji} size={14} className="mr-0.5" />{v.label}
               </button>
             ))}
           </div>
@@ -320,7 +321,7 @@ export function FeedBoard() {
           />
 
           <CozyButton onClick={submit} disabled={posting || !text.trim()} className="mt-3 w-full">
-            {myPost ? "Refresh my post 🔄" : "Post to the feed 💌"}
+            {myPost ? <>Refresh my post <Emoji char="🔄" size={15} className="ml-0.5" /></> : <>Post to the feed <Emoji char="💌" size={15} className="ml-0.5" /></>}
           </CozyButton>
           {!identity && (
             <p className="mt-2 text-center text-[11px] text-cocoa-soft">
@@ -376,7 +377,7 @@ export function FeedBoard() {
       {/* Feed */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl">On the feed now 🌸</h2>
+          <h2 className="inline-flex items-center gap-1 text-xl">On the feed now <Emoji char="🌸" size={20} /></h2>
           <span className="rounded-full bg-surface/70 px-3 py-1 text-xs text-cocoa-soft">
             {posts.length} {posts.length === 1 ? "friend" : "friends"} looking
           </span>

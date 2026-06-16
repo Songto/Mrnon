@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { isAdminUserId, ROLE_META, type Role } from "@/lib/roles";
 import { Avatar } from "@/components/ui/Avatar";
+import { CozyGlyph } from "@/components/ui/CozyGlyph";
+import { ROLE_GLYPH } from "@/components/ui/glyph-maps";
 
 const roleMeta = (r: Role) => ROLE_META[r] ?? ROLE_META.member;
 
@@ -115,13 +117,13 @@ export default function AdminPage() {
               <div className="min-w-0">
                 <p className="truncate font-display">
                   {m.displayName}{" "}
-                  <span className="text-xs" title={roleMeta(m.storedRole).label}>
-                    {roleMeta(m.storedRole).emoji}
+                  <span title={roleMeta(m.storedRole).label}>
+                    <CozyGlyph name={ROLE_GLYPH[m.storedRole]} size={13} />
                   </span>
                   {m.banned && <span className="ml-1 text-[11px] text-strawberry">· banned</span>}
                 </p>
-                <p className="truncate text-[11px] text-cocoa-soft">
-                  /{m.slug} · 💗{m.likes} · 🌱{m.seeds}/10
+                <p className="flex items-center gap-1 truncate text-[11px] text-cocoa-soft">
+                  /{m.slug} · <CozyGlyph name="vipHeart" size={11} />{m.likes} · <CozyGlyph name="sprout" size={11} />{m.seeds}/10
                 </p>
               </div>
             </div>
@@ -153,8 +155,8 @@ export default function AdminPage() {
                 >
                   −
                 </button>
-                <span className="px-1" title="Garden stage">
-                  🪴 {m.stageLabel}
+                <span className="inline-flex items-center gap-1 px-1" title="Garden stage">
+                  <CozyGlyph name="potted" size={14} /> {m.stageLabel}
                 </span>
                 <button
                   onClick={() => act(m.slug, { action: "stage", delta: 1 })}

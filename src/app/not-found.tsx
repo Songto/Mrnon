@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { CozyGlyph, Emoji } from "@/components/ui/CozyGlyph";
 
 export default function NotFound() {
   return (
     <div className="cozy-card mx-auto mt-10 flex max-w-md flex-col items-center gap-3 p-10 text-center">
-      <div className="text-6xl animate-float-slow">🌿</div>
+      <div className="animate-float-slow"><CozyGlyph name="leafy" size={64} /></div>
       <h2 className="text-2xl">This corner is empty</h2>
       <p className="max-w-sm text-sm text-cocoa-soft">
         We couldn&apos;t find that page. Let&apos;s head back to the parlor and put the kettle on.
@@ -12,7 +13,7 @@ export default function NotFound() {
         href="/"
         className="mt-2 rounded-full bg-strawberry px-5 py-2 text-sm font-display text-night shadow-cozy transition hover:-translate-y-0.5"
       >
-        Back to the parlor 🏡
+        Back to the parlor <Emoji char="🏡" size={15} className="ml-0.5" />
       </Link>
     </div>
   );

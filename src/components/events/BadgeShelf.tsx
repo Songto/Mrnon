@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { clsx } from "@/lib/clsx";
 import { BadgeArt } from "@/components/ui/BadgeArt";
+import { Emoji } from "@/components/ui/CozyGlyph";
 import type { AdvancedBadgeId } from "@/lib/badges";
 
 type Quest = {
@@ -54,7 +55,7 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
     <div className="space-y-6">
       {/* Advanced badges */}
       <div>
-        <p className="mb-2 font-display text-sm text-cocoa-soft">Special badges ✨</p>
+        <p className="mb-2 inline-flex items-center gap-1 font-display text-sm text-cocoa-soft">Special badges <Emoji char="✨" size={14} /></p>
         <div className="flex flex-wrap gap-3">
           {advanced.map((b) => (
             <div
@@ -112,8 +113,8 @@ export function BadgeShelf({ showProgress = true }: { showProgress?: boolean }) 
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <span className={clsx("text-2xl", q.done ? "" : "opacity-60 grayscale")}>
-                    {q.emoji}
+                  <span className={clsx(q.done ? "" : "opacity-60 grayscale")}>
+                    <Emoji char={q.emoji} size={28} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-display">

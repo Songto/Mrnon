@@ -3,6 +3,8 @@ import type { MemberCard } from "@/lib/db";
 import { bannerCss, type ImageFit } from "@/lib/profile-presets";
 import { ROLE_META, roleForSlug } from "@/lib/roles";
 import { Avatar } from "@/components/ui/Avatar";
+import { CozyGlyph } from "@/components/ui/CozyGlyph";
+import { ROLE_GLYPH } from "@/components/ui/glyph-maps";
 
 export function MemberMiniCard({ member }: { member: MemberCard }) {
   const role = roleForSlug(member.slug, member.storedRole);
@@ -47,7 +49,7 @@ export function MemberMiniCard({ member }: { member: MemberCard }) {
           className="mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold text-night"
           style={{ background: meta.color }}
         >
-          {meta.emoji} {meta.label.replace(/s$/, "")}
+          <CozyGlyph name={ROLE_GLYPH[role]} size={12} className="mr-0.5" /> {meta.label.replace(/s$/, "")}
         </span>
 
         {/* motto box */}

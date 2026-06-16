@@ -10,6 +10,7 @@ import { clsx } from "@/lib/clsx";
 import { Avatar } from "./Avatar";
 import { CozyButton } from "./CozyButton";
 import { IdentityModal } from "./IdentityModal";
+import { CozyGlyph } from "./CozyGlyph";
 import { ThemeToggle } from "./ThemeToggle";
 import { Icon, type IconName } from "./Icon";
 
@@ -51,7 +52,7 @@ export function Nav() {
                   onError={() => setLogoOk(false)}
                 />
               ) : (
-                <span className="animate-wiggle text-xl">🍓</span>
+                <span className="animate-wiggle"><CozyGlyph name="strawberry" size={20} /></span>
               )}
             </span>
             <span className="bg-gradient-to-r from-strawberry to-sage-deep bg-clip-text text-transparent">

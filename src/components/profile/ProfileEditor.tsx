@@ -17,6 +17,7 @@ import {
 import type { Showcase } from "@/lib/db";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
+import { Emoji } from "@/components/ui/CozyGlyph";
 import { ImageUpload } from "./ImageUpload";
 import { FocalPicker } from "./FocalPicker";
 import { ShowcaseManager } from "./ShowcaseManager";
@@ -100,7 +101,7 @@ function FitRow({ value, onChange }: { value: ImageFit; onChange: (f: ImageFit) 
               value === o.id ? "bg-strawberry text-night" : "bg-cocoa/5 text-cocoa-soft hover:bg-cocoa/10"
             }`}
           >
-            {o.emoji} {o.label}
+            <Emoji char={o.emoji} size={13} className="mr-0.5" />{o.label}
           </button>
         ))}
       </div>

@@ -6,6 +6,7 @@ import { Nav } from "@/components/ui/Nav";
 import { AmbiencePlayer } from "@/components/AmbiencePlayer";
 import { BadgeToaster } from "@/components/BadgeToaster";
 import { Clouds } from "@/components/Clouds";
+import { Emoji } from "@/components/ui/CozyGlyph";
 import { discordConfigured } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -44,7 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Nav />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
             <footer className="border-t border-cocoa/10 px-4 py-6 text-center text-xs text-cocoa-soft">
-              <p>Made with 🍓 &amp; 🫖 for the OURCHAT Teaparty · welcome home</p>
+              <p className="inline-flex items-center justify-center gap-1">
+                Made with <Emoji char="🍓" size={14} /> &amp; <Emoji char="🫖" size={14} /> for the OURCHAT Teaparty · welcome home
+              </p>
               <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
                 <Link href="/terms" className="hover:text-strawberry hover:underline">
                   Terms of Service

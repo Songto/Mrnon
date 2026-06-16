@@ -7,6 +7,8 @@ import { celebrateBadges } from "@/lib/toast";
 import { Plant } from "./Plant";
 import { Avatar } from "../ui/Avatar";
 import { CozyButton } from "../ui/CozyButton";
+import { CozyGlyph } from "../ui/CozyGlyph";
+import { STAGE_GLYPH } from "../ui/glyph-maps";
 
 const STAGE_ORDER = ["seed", "sprout", "leafy", "budding", "bloom", "flourishing"];
 
@@ -96,14 +98,17 @@ export function PlantGarden() {
                     </span>
                   </div>
                   {p.waterReceived > 0 && (
-                    <span className="text-[11px] text-sky-600">💧{p.waterReceived}</span>
+                    <span className="inline-flex items-center gap-0.5 text-[11px] text-sky-600">
+                      <CozyGlyph name="droplet" size={12} />
+                      {p.waterReceived}
+                    </span>
                   )}
                 </div>
 
                 <Plant stageIndex={stageIndex} size={110} />
 
-                <p className="text-sm font-display">
-                  {p.emoji} {p.stageLabel}
+                <p className="inline-flex items-center gap-1 text-sm font-display">
+                  <CozyGlyph name={STAGE_GLYPH[p.stage] ?? "sprout"} size={16} /> {p.stageLabel}
                 </p>
                 <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-parchment">
                   <div

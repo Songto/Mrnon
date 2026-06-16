@@ -2,6 +2,8 @@ import Link from "next/link";
 import { listMembers, type MemberCard } from "@/lib/db";
 import { ROLE_META, ROLE_ORDER, roleForSlug, type Role } from "@/lib/roles";
 import { MemberMiniCard } from "@/components/members/MemberMiniCard";
+import { CozyGlyph, Emoji } from "@/components/ui/CozyGlyph";
+import { ROLE_GLYPH } from "@/components/ui/glyph-maps";
 
 export const metadata = { title: "Members · OURCHAT Teaparty 🍓" };
 export const dynamic = "force-dynamic";
@@ -24,7 +26,7 @@ export default function MembersPage() {
         />
         <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 sm:p-8">
           <div className="text-night">
-            <p className="font-display text-sm/none opacity-80">🍓 OURCHAT Teaparty</p>
+            <p className="inline-flex items-center gap-1 font-display text-sm/none opacity-80"><Emoji char="🍓" size={14} /> OURCHAT Teaparty</p>
             <h1 className="mt-2 text-3xl font-bold sm:text-4xl">Our Members</h1>
             <p className="mt-2 max-w-md text-sm text-night/80">
               Everyone who&apos;s registered on the site — tap a card to visit their full profile.
@@ -45,7 +47,7 @@ export default function MembersPage() {
             Be the first — pull up a chair and set up your profile, and your card will appear here.
           </p>
           <Link href="/profile" className="mt-2 rounded-full bg-strawberry px-4 py-2 text-sm font-display text-night">
-            Create your profile 🌷
+            Create your profile <Emoji char="🌷" size={15} className="ml-0.5" />
           </Link>
         </div>
       ) : (
@@ -57,7 +59,7 @@ export default function MembersPage() {
             <section key={role}>
               <div className="mb-3 flex items-center gap-2">
                 <h2 className="flex items-center gap-2 text-lg" style={{ color: meta.color }}>
-                  <span>{meta.emoji}</span> {meta.label}
+                  <CozyGlyph name={ROLE_GLYPH[role]} size={18} /> {meta.label}
                 </h2>
                 <span className="rounded-full bg-cocoa/5 px-2 py-0.5 text-[11px] text-cocoa-soft">
                   {list.length}

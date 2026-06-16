@@ -6,6 +6,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useIdentity } from "@/lib/identity";
 import { CozyButton } from "@/components/ui/CozyButton";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 type Mode = "login" | "register";
 
@@ -49,7 +50,11 @@ export default function LoginPage() {
     <div className="mx-auto max-w-md">
       <div className="cozy-card p-6 sm:p-8">
         <h1 className="text-center text-2xl font-bold">
-          {mode === "login" ? "Welcome back 🫖" : "Join the teaparty 🍓"}
+          {mode === "login" ? (
+            <>Welcome back <Emoji char="🫖" size={26} /></>
+          ) : (
+            <>Join the teaparty <Emoji char="🍓" size={26} /></>
+          )}
         </h1>
         <p className="mt-1 text-center text-sm text-cocoa-soft">
           {mode === "login"
@@ -106,7 +111,7 @@ export default function LoginPage() {
           />
           {error && <p className="text-sm text-strawberry">{error}</p>}
           <CozyButton disabled={busy} className="w-full">
-            {busy ? "…" : mode === "login" ? "Log in" : "Create account 🌷"}
+            {busy ? "…" : mode === "login" ? "Log in" : <>Create account <Emoji char="🌷" size={16} className="ml-1" /></>}
           </CozyButton>
         </form>
 
@@ -116,7 +121,7 @@ export default function LoginPage() {
               <span className="h-px flex-1 bg-cocoa/10" /> or <span className="h-px flex-1 bg-cocoa/10" />
             </div>
             <CozyButton variant="discord" onClick={() => signIn("discord")} className="w-full">
-              Sign in with Discord 💌
+              Sign in with Discord <Emoji char="💌" size={16} className="ml-1" />
             </CozyButton>
           </>
         )}

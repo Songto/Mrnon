@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
 import { SEEDS, RARITY_META, type SeedDef, type SeedRarity } from "@/lib/seeds";
 import { SeedIcon } from "./SeedIcon";
+import { CozyGlyph } from "../ui/CozyGlyph";
 import { clsx } from "@/lib/clsx";
 
 type RollResult = {
@@ -72,8 +73,14 @@ export function SeedGacha() {
           <p className="font-display text-lg">Seed Gacha 🎰</p>
           <p className="mt-0.5 text-xs text-cocoa-soft">One free roll a day — collect all 10!</p>
 
-          <div className={clsx("my-3 flex h-[72px] items-center justify-center text-7xl", rolling && "animate-wiggle")}>
-            {rolling ? "🥚" : result ? <SeedIcon id={result.seed.id} emoji={result.seed.emoji} size={72} /> : "🌰"}
+          <div className={clsx("my-3 flex h-[72px] items-center justify-center", rolling && "animate-wiggle")}>
+            {rolling ? (
+              <CozyGlyph name="egg" size={72} />
+            ) : result ? (
+              <SeedIcon id={result.seed.id} emoji={result.seed.emoji} size={72} />
+            ) : (
+              <CozyGlyph name="acorn" size={72} />
+            )}
           </div>
 
           {result && !rolling && (

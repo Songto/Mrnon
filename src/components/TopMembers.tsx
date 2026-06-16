@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useSocket } from "@/lib/socket-client";
 import { ROLE_META, roleForSlug } from "@/lib/roles";
 import { Avatar } from "./ui/Avatar";
+import { CozyGlyph, Emoji } from "./ui/CozyGlyph";
+import { ROLE_GLYPH } from "./ui/glyph-maps";
 
 type TopMember = {
   slug: string;
@@ -69,7 +71,7 @@ export function TopMembers() {
       <div className="p-4">
         {top8.length === 0 ? (
           <p className="py-4 text-center text-sm text-cocoa-soft">
-            No members yet — set up your profile to be the first! 🌷
+            No members yet — set up your profile to be the first! <Emoji char="🌷" size={14} />
           </p>
         ) : (
           <ul className="mb-4 grid max-h-48 grid-cols-1 gap-1 overflow-y-auto chat-scroll sm:grid-cols-2">
@@ -90,8 +92,8 @@ export function TopMembers() {
                       />
                     </div>
                     <span className="truncate">{m.displayName}</span>
-                    <span className="ml-auto shrink-0 text-xs" title={ROLE_META[role].label}>
-                      {ROLE_META[role].emoji}
+                    <span className="ml-auto shrink-0" title={ROLE_META[role].label}>
+                      <CozyGlyph name={ROLE_GLYPH[role]} size={14} />
                     </span>
                   </Link>
                 </li>

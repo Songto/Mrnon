@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { BadgeToast } from "@/lib/toast";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 export function BadgeToaster() {
   const [toasts, setToasts] = useState<(BadgeToast & { key: number })[]>([]);
@@ -26,7 +27,7 @@ export function BadgeToaster() {
           key={t.key}
           className="cozy-card flex animate-pop items-center gap-3 px-5 py-3 shadow-cozy-lg"
         >
-          <span className="text-3xl animate-wiggle">{t.emoji}</span>
+          <span className="animate-wiggle"><Emoji char={t.emoji} size={32} /></span>
           <div>
             <p className="font-display text-sm">New badge: {t.name}!</p>
             <p className="text-xs text-cocoa-soft">{t.description}</p>

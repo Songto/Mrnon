@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { clsx } from "@/lib/clsx";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 type Sound = { key: string; label: string; emoji: string; src: string };
 
@@ -115,7 +116,7 @@ export function AmbiencePlayer() {
                     isMissing && "opacity-50"
                   )}
                 >
-                  <span className="text-lg">{s.emoji}</span>
+                  <Emoji char={s.emoji} size={18} />
                   {s.label}
                 </button>
               );

@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 import { Icon } from "@/components/ui/Icon";
+import { Emoji } from "@/components/ui/CozyGlyph";
 import { ProfileMusic } from "./ProfileMusic";
 import { PhotoShowcase } from "./PhotoShowcase";
 import { ShowcaseList } from "./ShowcaseList";
@@ -309,7 +310,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                   className="rounded-full px-2.5 py-0.5 text-xs font-bold text-night"
                   style={{ background: accent }}
                 >
-                  {fallback.tierEmoji} {fallback.tierName}
+                  <Emoji char={fallback.tierEmoji} size={13} className="mr-0.5" /> {fallback.tierName}
                 </span>
               </div>
 

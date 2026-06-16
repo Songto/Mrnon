@@ -4,6 +4,7 @@ import { TopMembers } from "@/components/TopMembers";
 import { TeaOfTheDay } from "@/components/TeaOfTheDay";
 import { CozyMascot } from "@/components/CozyMascot";
 import { CozyLinkButton } from "@/components/ui/CozyButton";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 const FEATURES = [
   {
@@ -43,8 +44,8 @@ export default function HomePage() {
             alt="OURCHAT Teaparty"
             className="mb-5 w-44 rounded-3xl shadow-cozy-lg sm:w-52"
           />
-          <span className="inline-block rounded-full bg-surface/70 px-4 py-1 text-xs font-display text-strawberry">
-            🍓 the home of our cozy game community
+          <span className="inline-flex items-center gap-1 rounded-full bg-surface/70 px-4 py-1 text-xs font-display text-strawberry">
+            <Emoji char="🍓" size={15} /> the home of our cozy game community
           </span>
           <h1 className="mt-4 text-4xl leading-tight sm:text-5xl">
             Welcome to{" "}
@@ -52,7 +53,7 @@ export default function HomePage() {
               OURCHAT Teaparty
             </span>
             <br />
-            our cozy little garden 🌸
+            our cozy little garden <Emoji char="🌸" size={36} />
           </h1>
           <p className="mt-4 max-w-md text-cocoa-soft">
             A warm, slow place to hang out between quests. Steep some tea, chat live in our
@@ -61,10 +62,10 @@ export default function HomePage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <CozyLinkButton href="/tearoom" className="px-4 py-2 text-sm">
-              Enter the rooms 💬
+              Enter the rooms <Emoji char="💬" size={16} className="ml-1" />
             </CozyLinkButton>
             <CozyLinkButton href="/members" variant="soft" className="px-4 py-2 text-sm">
-              Meet the members 🪪
+              Meet the members <Emoji char="🪪" size={16} className="ml-1" />
             </CozyLinkButton>
             <CozyLinkButton
               href="https://discord.gg/sDgzXBNjx8"
@@ -72,7 +73,7 @@ export default function HomePage() {
               variant="discord"
               className="px-4 py-2 text-sm"
             >
-              Join our Discord 💌
+              Join our Discord <Emoji char="💌" size={16} className="ml-1" />
             </CozyLinkButton>
           </div>
         </div>
@@ -94,10 +95,12 @@ export default function HomePage() {
               style={{ background: `linear-gradient(160deg, ${f.tint}, #FFFFFF 75%)` }}
             >
               {/* faint emoji watermark */}
-              <span className="pointer-events-none absolute -bottom-3 -right-2 text-7xl opacity-10">
-                {f.emoji}
+              <span className="pointer-events-none absolute -bottom-3 -right-2 opacity-10">
+                <Emoji char={f.emoji} size={112} />
               </span>
-              <span className="relative text-4xl transition group-hover:animate-wiggle">{f.emoji}</span>
+              <span className="relative transition group-hover:animate-wiggle">
+                <Emoji char={f.emoji} size={40} />
+              </span>
               <h3 className="relative mt-3 text-lg">{f.title}</h3>
               <p className="relative mt-1 text-sm text-cocoa-soft">{f.text}</p>
               <span className="relative mt-auto pt-3 text-sm font-display text-rose-deep">

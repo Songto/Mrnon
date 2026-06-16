@@ -11,6 +11,7 @@ import { Avatar } from "../ui/Avatar";
 import { Icon } from "../ui/Icon";
 import { CozyButton } from "../ui/CozyButton";
 import { IdentityModal } from "../ui/IdentityModal";
+import { Emoji } from "../ui/CozyGlyph";
 import { type Seat } from "./TeaTable";
 import { RoomMembers } from "./RoomMembers";
 import { GamePanel } from "./GamePanel";
@@ -181,7 +182,7 @@ export function ChatRoom() {
           <p className="max-w-sm text-sm text-cocoa-soft">
             Pick a cozy name (or sign in with Discord) and join the table.
           </p>
-          <CozyButton onClick={() => setShowModal(true)}>Pull up a chair ✨</CozyButton>
+          <CozyButton onClick={() => setShowModal(true)}>Pull up a chair <Emoji char="✨" size={16} className="ml-1" /></CozyButton>
         </div>
         {showModal && <IdentityModal onClose={() => setShowModal(false)} />}
       </>
@@ -212,7 +213,7 @@ export function ChatRoom() {
               !isPrivate ? "bg-strawberry/25" : "hover:bg-surface/70"
             )}
           >
-            <span className="text-xl">{LOBBY.emoji}</span>
+            <span><Emoji char={LOBBY.emoji} size={20} /></span>
             <span>
               <span className="block font-display">{LOBBY.name}</span>
               <span className="block text-[11px] text-cocoa-soft">{LOBBY.blurb}</span>
@@ -222,7 +223,7 @@ export function ChatRoom() {
 
         {/* Private rooms by code */}
         <div className="cozy-card space-y-3 p-3">
-          <p className="px-2 font-display text-sm text-cocoa-soft">Private room 🔑</p>
+          <p className="inline-flex items-center gap-1 px-2 font-display text-sm text-cocoa-soft">Private room <Emoji char="🔑" size={14} /></p>
 
           {isPrivate ? (
             <div className="rounded-2xl bg-surface/60 p-3 text-center">
@@ -248,7 +249,7 @@ export function ChatRoom() {
           ) : (
             <>
               <CozyButton onClick={createPrivate} className="w-full text-sm">
-                Open a private room ✨
+                Open a private room <Emoji char="✨" size={15} className="ml-0.5" />
               </CozyButton>
               <div className="flex items-center gap-2 px-1 text-[11px] text-cocoa-soft">
                 <span className="h-px flex-1 bg-cocoa/10" /> or join by code{" "}
@@ -280,7 +281,7 @@ export function ChatRoom() {
       <section className="cozy-card flex h-[70vh] flex-col p-0">
         <div className="flex items-center justify-between border-b border-cocoa/10 px-5 py-3">
           <h2 className="flex items-center gap-2 text-lg">
-            <span>{roomEmoji}</span> {roomName}
+            <span><Emoji char={roomEmoji} size={18} /></span> {roomName}
           </h2>
           <div className="flex items-center gap-3">
             {canClear && (
@@ -399,7 +400,7 @@ export function ChatRoom() {
               className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none focus:border-strawberry"
             />
             <CozyButton onClick={send} disabled={!draft.trim()} className="px-5">
-              Send 🫖
+              Send <Emoji char="🫖" size={15} className="ml-0.5" />
             </CozyButton>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import type { Showcase } from "@/lib/db";
 import { ImageUpload } from "./ImageUpload";
 import { FocalPicker } from "./FocalPicker";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 const TYPE_META: Record<Showcase["type"], { label: string; emoji: string; hint: string }> = {
   about: { label: "About", emoji: "📝", hint: "A free text box about you." },
@@ -75,7 +76,7 @@ export function ShowcaseManager({
                   ▼
                 </button>
               </div>
-              <span className="text-lg">{TYPE_META[sc.type].emoji}</span>
+              <Emoji char={TYPE_META[sc.type].emoji} size={18} />
               <input
                 value={sc.title}
                 onChange={(e) => update(sc.id, { title: e.target.value })}
@@ -192,7 +193,7 @@ export function ShowcaseManager({
               className="rounded-full border border-dashed border-cocoa/20 px-3 py-1.5 text-xs text-cocoa-soft transition hover:border-strawberry hover:text-cocoa"
               title={TYPE_META[t].hint}
             >
-              + {TYPE_META[t].emoji} {TYPE_META[t].label}
+              + <Emoji char={TYPE_META[t].emoji} size={14} className="mx-0.5" /> {TYPE_META[t].label}
             </button>
           ))}
         </div>

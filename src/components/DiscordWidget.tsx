@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CozyLinkButton } from "./ui/CozyButton";
+import { Emoji } from "./ui/CozyGlyph";
 
 type Member = { username: string; status: string; avatar_url?: string };
 type Widget = {
@@ -79,7 +80,7 @@ export function DiscordWidget() {
           external
           className="w-full"
         >
-          Join our Discord 💌
+          Join our Discord <Emoji char="💌" size={16} className="ml-1" />
         </CozyLinkButton>
         {data?.widgetDisabled && (
           <p className="mt-2 text-center text-[11px] text-cocoa-soft">

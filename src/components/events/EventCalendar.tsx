@@ -5,6 +5,7 @@ import { useIdentity } from "@/lib/identity";
 import { celebrateBadges } from "@/lib/toast";
 import { clsx } from "@/lib/clsx";
 import { CozyButton } from "../ui/CozyButton";
+import { Emoji } from "../ui/CozyGlyph";
 
 type EventRecord = {
   id: string;
@@ -68,7 +69,7 @@ export function EventCalendar() {
           {events.length} upcoming {events.length === 1 ? "gathering" : "gatherings"}
         </p>
         <CozyButton className="text-sm" onClick={() => setCreating((c) => !c)}>
-          {creating ? "Close" : "Host a party 🎀"}
+          {creating ? "Close" : <>Host a party <Emoji char="🎀" size={15} className="ml-0.5" /></>}
         </CozyButton>
       </div>
 
@@ -109,7 +110,7 @@ export function EventCalendar() {
             className="w-full rounded-2xl border border-rose/30 bg-surface/80 px-4 py-2 outline-none focus:border-rose-deep"
           />
           <CozyButton onClick={submit} disabled={!form.title || !form.date}>
-            Add to calendar ✨
+            Add to calendar <Emoji char="✨" size={15} className="ml-0.5" />
           </CozyButton>
         </div>
       )}

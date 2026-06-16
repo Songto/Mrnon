@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Emoji } from "@/components/ui/CozyGlyph";
 
 // Shows a seed's animated art from /public/seeds/<id>.gif. If that file hasn't
 // been uploaded yet, it quietly falls back to the seed's emoji — so the site
@@ -18,11 +19,7 @@ export function SeedIcon({
 }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
-    return (
-      <span className={className} style={{ fontSize: size * 0.9, lineHeight: 1 }}>
-        {emoji}
-      </span>
-    );
+    return <Emoji char={emoji} size={size} className={className} />;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element

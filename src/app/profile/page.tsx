@@ -8,6 +8,7 @@ import { BadgeShelf } from "@/components/events/BadgeShelf";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
+import { CozyGlyph, Emoji } from "@/components/ui/CozyGlyph";
 
 const STAGE_ORDER = ["seed", "sprout", "leafy", "budding", "bloom", "flourishing"];
 
@@ -40,12 +41,12 @@ export default function ProfilePage() {
     return (
       <>
         <div className="cozy-card flex flex-col items-center gap-3 p-10 text-center">
-          <div className="text-6xl animate-wiggle">🪪</div>
+          <div className="animate-wiggle"><CozyGlyph name="idCard" size={64} /></div>
           <h2 className="text-2xl">No cozy card yet</h2>
           <p className="max-w-sm text-sm text-cocoa-soft">
             Pull up a chair to start your profile, grow a plant, and collect badges.
           </p>
-          <CozyButton onClick={() => setShowModal(true)}>Pull up a chair ✨</CozyButton>
+          <CozyButton onClick={() => setShowModal(true)}>Pull up a chair <Emoji char="✨" size={16} className="ml-1" /></CozyButton>
         </div>
         {showModal && <IdentityModal onClose={() => setShowModal(false)} />}
       </>
@@ -92,8 +93,8 @@ export default function ProfilePage() {
                 />
               </div>
               {plant && plant.waterReceived > 0 && (
-                <p className="mt-2 text-xs text-sky-600">
-                  💧 Watered {plant.waterReceived} time
+                <p className="mt-2 inline-flex items-center gap-1 text-xs text-sky-600">
+                  <CozyGlyph name="droplet" size={13} /> Watered {plant.waterReceived} time
                   {plant.waterReceived === 1 ? "" : "s"} by friends
                 </p>
               )}

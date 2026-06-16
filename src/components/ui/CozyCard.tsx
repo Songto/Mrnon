@@ -1,5 +1,6 @@
 import { clsx } from "@/lib/clsx";
 import { Icon, type IconName } from "./Icon";
+import { Emoji } from "./CozyGlyph";
 
 export function CozyCard({
   className,
@@ -30,7 +31,7 @@ export function SectionHeading({
             <Icon name={icon} size={26} strokeWidth={2} />
           </span>
         ) : (
-          <span className="animate-float-slow">{emoji}</span>
+          <span className="animate-float-slow">{emoji && <Emoji char={emoji} size={26} />}</span>
         )}
         {title}
       </h2>

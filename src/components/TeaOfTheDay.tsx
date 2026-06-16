@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { todayKey, type Tea } from "@/lib/tea";
 import { CozyButton } from "./ui/CozyButton";
+import { Emoji } from "./ui/CozyGlyph";
 
 const COOKIE_KEY = "ourchat:cookie";
 
@@ -46,15 +47,15 @@ export function TeaOfTheDay({ initialTea }: { initialTea: Tea }) {
 
   return (
     <div className="cozy-card relative overflow-hidden p-6">
-      <div className="pointer-events-none absolute -right-4 -top-6 text-8xl opacity-10">
-        {initialTea.emoji}
+      <div className="pointer-events-none absolute -right-4 -top-6 opacity-10">
+        <Emoji char={initialTea.emoji} size={128} />
       </div>
       <p className="font-display text-xs uppercase tracking-widest text-rose-deep">
         Tea of the day
       </p>
       <div className="mt-2 flex items-center gap-4">
         <div className="relative">
-          <div className="text-6xl">{initialTea.emoji}</div>
+          <div><Emoji char={initialTea.emoji} size={64} /></div>
           {/* rising steam */}
           <span className="steam-puff left-3 animate-steam" style={{ animationDelay: "0s" }} />
           <span className="steam-puff left-7 animate-steam" style={{ animationDelay: "1s" }} />
