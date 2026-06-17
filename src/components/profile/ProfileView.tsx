@@ -6,17 +6,16 @@ import { useIdentity } from "@/lib/identity";
 import { memberSlug } from "@/lib/members";
 import { ADMIN_SLUGS } from "@/lib/roles";
 import { clsx } from "@/lib/clsx";
-import { BadgeArt } from "@/components/ui/BadgeArt";
-import type { AdvancedBadgeId } from "@/lib/badges";
 import { backgroundCss, bannerCss, type ImageFit } from "@/lib/profile-presets";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 import { Icon } from "@/components/ui/Icon";
-import { Emoji } from "@/components/ui/CozyGlyph";
+import { CozyGlyph, Emoji } from "@/components/ui/CozyGlyph";
 import { ProfileMusic } from "./ProfileMusic";
 import { PhotoShowcase } from "./PhotoShowcase";
 import { ShowcaseList } from "./ShowcaseList";
+import { RewardsPanel } from "./RewardsPanel";
 import type { Showcase } from "@/lib/db";
 
 type Comment = {
@@ -61,6 +60,7 @@ type Profile = {
   showcases?: Showcase[];
   likes?: string[];
   grantedBadges?: string[];
+  seeds?: string[];
   comments: Comment[];
 };
 
@@ -297,42 +297,27 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               </div>
             </div>
 
-            {/* name + role pill on the left, badge case on the right */}
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1
-                  className="text-2xl font-bold [overflow-wrap:anywhere]"
-                  style={{ color: profile?.nameColor || "#3E2C1B" }}
-                >
-                  {profile?.displayName || fallback.displayName}
-                </h1>
+            {/* name, then a tidy meta row of pills underneath */}
+            <div className="mt-3">
+              <h1
+                className="font-display text-3xl font-bold leading-tight [overflow-wrap:anywhere]"
+                style={{ color: profile?.nameColor || "#3E2C1B" }}
+              >
+                {profile?.displayName || fallback.displayName}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span
-                  className="rounded-full px-2.5 py-0.5 text-xs font-bold text-night"
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold text-night shadow-cozy"
                   style={{ background: accent }}
                 >
-                  <Emoji char={fallback.tierEmoji} size={13} className="mr-0.5" /> {fallback.tierName}
+                  <Emoji char={fallback.tierEmoji} size={13} className="mr-1" /> {fallback.tierName}
                 </span>
-              </div>
-
-              {/* badge case — earned medallions in a golden display strip */}
-              {earnedBadges.length > 0 && (
-                <div className="flex items-center gap-2 rounded-2xl border border-honey/60 bg-gradient-to-b from-[#FFFBEF] to-honey/25 px-3 py-1.5 shadow-cozy">
-                  <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-cocoa-soft">
-                    Badges
+                {earnedBadges.length > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-honey/30 px-2.5 py-0.5 text-xs font-display text-cocoa-soft">
+                    <CozyGlyph name="star" size={13} /> {earnedBadges.length}
                   </span>
-                  {earnedBadges.map((b, i) => (
-                    <span
-                      key={b.id}
-                      title={`${b.name} — ${b.description}`}
-                      className="inline-flex cursor-help transition-transform duration-200 hover:scale-125"
-                    >
-                      <span className="badge-float inline-flex" style={{ animationDelay: `${i * 0.45}s` }}>
-                        <BadgeArt id={b.id as AdvancedBadgeId} size={36} title={b.name} />
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* admin-only: grant/revoke the special badges */}
@@ -371,58 +356,73 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
           </div>
         </div>
 
-        {/* Info panel — compact accent tiles that fill the row evenly */}
-        {(() => {
-          const items: { icon: string; label: string; value: string }[] = [
-            ...filledInfo.map((f) => ({
-              icon: f.icon,
-              label: f.label,
-              value: profile?.[f.key] as string
-            })),
-            ...(profile?.discord ? [{ icon: "💬", label: "Discord", value: profile.discord }] : []),
-            ...(profile?.twitch ? [{ icon: "🟣", label: "Twitch", value: profile.twitch }] : [])
-          ];
-          if (items.length === 0 && !isOwner) return null;
-          return (
-            <div className="cozy-card p-4 sm:p-5">
-              <div className="p-0">
-                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-cocoa-soft">
-                  About {profile?.displayName || fallback.displayName}
-                </h2>
-                {profile?.motto && (
-                  <p className="mb-3 mt-1 break-words text-sm italic text-cocoa [overflow-wrap:anywhere]">
-                    “{profile.motto}”
-                  </p>
-                )}
-                {!profile?.motto && <div className="mb-3" />}
-                {items.length === 0 ? (
-                  <p className="text-sm text-cocoa-soft">
-                    Nothing here yet — tap Customize to add your details. 🌷
-                  </p>
-                ) : (
-                  <div
-                    className="grid gap-2.5"
-                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
-                  >
-                    {items.map((it) => (
-                      <div
-                        key={it.label}
-                        className="rounded-2xl bg-cocoa/[0.05] px-3.5 py-2.5 text-center"
-                      >
-                        <p className="mb-0.5 flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-cocoa-soft">
-                          <span className="text-sm">{it.icon}</span> {it.label}
+        {/* Body: one cozy two-column layout so the page reads as a single
+            profile rather than a tall stack of separate boxes. */}
+        <div className="grid gap-5 md:grid-cols-[320px_1fr] md:items-start">
+          {/* Left: who they are + their trophy shelf, merged into one card */}
+          <div className="md:sticky md:top-24">
+            {(() => {
+              const items: { icon: string; label: string; value: string }[] = [
+                ...filledInfo.map((f) => ({
+                  icon: f.icon,
+                  label: f.label,
+                  value: profile?.[f.key] as string
+                })),
+                ...(profile?.discord ? [{ icon: "💬", label: "Discord", value: profile.discord }] : []),
+                ...(profile?.twitch ? [{ icon: "🟣", label: "Twitch", value: profile.twitch }] : [])
+              ];
+              const showAbout = items.length > 0 || !!profile?.motto || isOwner;
+              return (
+                <div className="cozy-card space-y-4 p-5" style={{ borderColor: `${accent}55` }}>
+                  {showAbout && (
+                    <div>
+                      <h2 className="flex items-center gap-1.5 font-display text-base">
+                        <CozyGlyph name="teacup" size={16} /> About{" "}
+                        {profile?.displayName || fallback.displayName}
+                      </h2>
+                      {profile?.motto && (
+                        <p className="mt-1.5 break-words text-sm italic text-cocoa [overflow-wrap:anywhere]">
+                          “{profile.motto}”
                         </p>
-                        <p className="break-words text-sm font-display [overflow-wrap:anywhere]">
-                          {it.value}
+                      )}
+                      {items.length === 0 ? (
+                        <p className="mt-2 text-sm text-cocoa-soft">
+                          Nothing here yet — tap Customize to add your details. 🌷
                         </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
+                      ) : (
+                        <dl className="mt-3 space-y-1.5">
+                          {items.map((it) => (
+                            <div
+                              key={it.label}
+                              className="flex items-center gap-2 rounded-2xl bg-cocoa/[0.05] px-3 py-2 text-sm"
+                            >
+                              <span className="text-base">{it.icon}</span>
+                              <dt className="font-display text-cocoa-soft">{it.label}</dt>
+                              <dd className="ml-auto truncate text-right font-display [overflow-wrap:anywhere]">
+                                {it.value}
+                              </dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+                    </div>
+                  )}
+                  {showAbout && <div className="h-px bg-cocoa/10" />}
+                  <RewardsPanel
+                    bare
+                    displayName={profile?.displayName || fallback.displayName}
+                    accent={accent}
+                    earnedBadges={earnedBadges}
+                    seeds={profile?.seeds}
+                    likes={profile?.likes?.length ?? 0}
+                  />
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Right: showcases + guestbook */}
+          <div className="space-y-5">
 
         {/* Showcases (Steam-style: About / Screenshots / Featured) */}
         {profile?.showcases && profile.showcases.length > 0 ? (
@@ -436,9 +436,9 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
 
         {/* Comment wall */}
         <div className="cozy-card p-5">
-          <h2 className="mb-3 text-lg">
-            Guestbook 💬{" "}
-            <span className="text-sm text-cocoa-soft">({comments.length})</span>
+          <h2 className="mb-3 flex items-center gap-1.5 font-display text-lg">
+            <CozyGlyph name="chatBubble" size={18} /> Guestbook
+            <span className="text-sm font-normal text-cocoa-soft">({comments.length})</span>
           </h2>
 
           <div className="mb-4 flex items-start gap-2">
@@ -493,6 +493,8 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               })}
             </ul>
           )}
+        </div>
+          </div>
         </div>
       </div>
 

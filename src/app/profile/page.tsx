@@ -9,6 +9,7 @@ import { CozyButton } from "@/components/ui/CozyButton";
 import { IdentityModal } from "@/components/ui/IdentityModal";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { CozyGlyph, Emoji } from "@/components/ui/CozyGlyph";
+import { STAGE_GLYPH } from "@/components/ui/glyph-maps";
 
 const STAGE_ORDER = ["seed", "sprout", "leafy", "budding", "bloom", "flourishing"];
 
@@ -64,7 +65,7 @@ export default function ProfilePage() {
           <Avatar name={identity.name} src={identity.avatar} size={88} />
           <h1 className="mt-3 text-2xl">{identity.name}</h1>
           <span className="rounded-full bg-parchment px-3 py-0.5 text-xs text-cocoa-soft">
-            {identity.source === "discord" ? "Discord member" : "Cozy guest"}
+            {identity.source === "discord" ? "Discord member" : "Teaparty member"}
           </span>
           <button
             onClick={logout}
@@ -79,8 +80,9 @@ export default function ProfilePage() {
           <div className="mt-2 flex items-center gap-4 rounded-cozy bg-parchment/60 p-4">
             <Plant stageIndex={stageIndex} size={96} />
             <div className="flex-1">
-              <p className="font-display">
-                {plant?.emoji} {plant?.stageLabel ?? "Seedling"}
+              <p className="inline-flex items-center gap-1.5 font-display">
+                <CozyGlyph name={STAGE_GLYPH[plant?.stage ?? "seed"] ?? "acorn"} size={18} />
+                {plant?.stageLabel ?? "Seedling"}
               </p>
               <p className="text-xs text-cocoa-soft">
                 Growth score: {plant?.score ?? 0}
@@ -88,7 +90,7 @@ export default function ProfilePage() {
               </p>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface/70">
                 <div
-                  className="h-full rounded-full bg-sage-deep transition-all"
+                  className="h-full rounded-full bg-gradient-to-r from-sage to-sage-deep transition-all duration-700 ease-out"
                   style={{ width: `${Math.round((plant?.progress ?? 0) * 100)}%` }}
                 />
               </div>
@@ -109,7 +111,9 @@ export default function ProfilePage() {
       <ProfileEditor />
 
       <section>
-        <h3 className="mb-3 text-xl">Quests &amp; badges 🏆</h3>
+        <h3 className="mb-3 inline-flex items-center gap-2 text-xl">
+          <CozyGlyph name="ribbon" size={20} /> Quests &amp; badges
+        </h3>
         <BadgeShelf />
       </section>
     </div>
