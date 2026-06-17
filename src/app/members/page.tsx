@@ -17,7 +17,7 @@ export default function MembersPage() {
     <div className="space-y-6">
       {/* Hero banner */}
       <div
-        className="relative overflow-hidden rounded-cozy border border-cocoa/10 shadow-cozy"
+        className="rise relative overflow-hidden rounded-cozy border border-cocoa/10 shadow-cozy"
         style={{ background: "linear-gradient(135deg,#FF7E9B,#E0A6FF 55%,#8B7DF0)" }}
       >
         <div
@@ -51,12 +51,12 @@ export default function MembersPage() {
           </Link>
         </div>
       ) : (
-        ROLE_ORDER.map((role) => {
+        [...ROLE_ORDER].reverse().map((role, ri) => {
           const list = byRole[role];
           if (list.length === 0) return null;
           const meta = ROLE_META[role];
           return (
-            <section key={role}>
+            <section key={role} className="rise" style={{ "--d": `${0.06 + ri * 0.07}s` } as React.CSSProperties}>
               <div className="mb-3 flex items-center gap-2">
                 <h2 className="flex items-center gap-2 text-lg" style={{ color: meta.color }}>
                   <CozyGlyph name={ROLE_GLYPH[role]} size={18} /> {meta.label}

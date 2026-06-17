@@ -9,6 +9,7 @@ import { Avatar } from "../ui/Avatar";
 import { CozyButton } from "../ui/CozyButton";
 import { CozyGlyph } from "../ui/CozyGlyph";
 import { STAGE_GLYPH } from "../ui/glyph-maps";
+import { clsx } from "@/lib/clsx";
 
 const STAGE_ORDER = ["seed", "sprout", "leafy", "budding", "bloom", "flourishing"];
 
@@ -85,11 +86,18 @@ export function PlantGarden() {
               The garden is empty soil for now 🌱 — chat in the tearoom to sprout the first plant!
             </div>
           )}
-          {garden.map((p) => {
+          {garden.map((p, i) => {
             const stageIndex = Math.max(0, STAGE_ORDER.indexOf(p.stage));
             const mine = p.id === identity?.userId;
             return (
-              <div key={p.id} className="cozy-card flex flex-col items-center p-4 text-center">
+              <div
+                key={p.id}
+                className={clsx(
+                  "rise cozy-card group flex flex-col items-center p-4 text-center transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-cozy-lg",
+                  mine && "ring-2 ring-sage-deep/60"
+                )}
+                style={{ "--d": `${Math.min(i, 8) * 0.05}s` } as React.CSSProperties}
+              >
                 <div className="flex w-full items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Avatar name={p.name} src={p.avatar} size={28} />
@@ -105,14 +113,16 @@ export function PlantGarden() {
                   )}
                 </div>
 
-                <Plant stageIndex={stageIndex} size={110} />
+                <div className="my-1 transition-transform duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-[1.06]">
+                  <Plant stageIndex={stageIndex} size={110} />
+                </div>
 
                 <p className="inline-flex items-center gap-1 text-sm font-display">
                   <CozyGlyph name={STAGE_GLYPH[p.stage] ?? "sprout"} size={16} /> {p.stageLabel}
                 </p>
                 <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-parchment">
                   <div
-                    className="h-full rounded-full bg-sage-deep transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-sage to-sage-deep transition-all duration-700 ease-out"
                     style={{ width: `${Math.round(p.progress * 100)}%` }}
                   />
                 </div>
@@ -120,11 +130,17 @@ export function PlantGarden() {
                 {identity && !mine && (
                   <CozyButton
                     variant="soft"
-                    className="mt-3 px-4 py-1.5 text-xs"
+                    className="mt-3 gap-1 px-4 py-1.5 text-xs"
                     disabled={watering === p.id}
                     onClick={() => water(p.id)}
                   >
-                    {watering === p.id ? "Watering…" : "Water 💧"}
+                    {watering === p.id ? (
+                      "Watering…"
+                    ) : (
+                      <>
+                        Water <CozyGlyph name="droplet" size={13} />
+                      </>
+                    )}
                   </CozyButton>
                 )}
               </div>
@@ -156,11 +172,14 @@ export function PlantGarden() {
             {online.map((o) => (
               <li
                 key={o.userId}
-                className="flex items-center gap-2 rounded-full bg-surface/60 px-3 py-1.5 text-sm"
+                className="flex items-center gap-2 rounded-full bg-surface/60 px-3 py-1.5 text-sm transition-colors hover:bg-surface"
               >
-                <Avatar name={o.name} src={o.avatar} size={26} />
+                <span className="relative shrink-0">
+                  <Avatar name={o.name} src={o.avatar} size={26} />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-sage-deep" />
+                </span>
                 <span className="truncate">{o.name}</span>
-                <span className="ml-auto text-base">🪑</span>
+                <CozyGlyph name="teacup" size={15} className="ml-auto opacity-70" />
               </li>
             ))}
           </ul>

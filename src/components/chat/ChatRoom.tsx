@@ -330,7 +330,7 @@ export function ChatRoom() {
             return (
               <div
                 key={m.id}
-                className={clsx("flex items-end gap-2", mine && "flex-row-reverse")}
+                className={clsx("message-in flex items-end gap-2", mine && "flex-row-reverse")}
               >
                 <Avatar name={m.name} src={m.avatar} size={32} />
                 <div className={clsx("max-w-[75%]", mine && "text-right")}>
@@ -340,8 +340,8 @@ export function ChatRoom() {
                   </div>
                   <div
                     className={clsx(
-                      "inline-block max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm shadow-cozy [overflow-wrap:anywhere]",
-                      mine ? "bg-strawberry text-night" : "bg-surface"
+                      "inline-block max-w-full whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm shadow-cozy transition-transform [overflow-wrap:anywhere] hover:-translate-y-0.5",
+                      mine ? "rounded-br-md bg-strawberry text-night" : "rounded-bl-md bg-surface"
                     )}
                   >
                     {m.text}
@@ -397,7 +397,7 @@ export function ChatRoom() {
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder={`Message ${roomName}…`}
               maxLength={300}
-              className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none focus:border-strawberry"
+              className="flex-1 rounded-full border border-rose/30 bg-surface/80 px-4 py-2.5 outline-none transition focus:border-strawberry focus:ring-2 focus:ring-strawberry/25"
             />
             <CozyButton onClick={send} disabled={!draft.trim()} className="px-5">
               Send <Emoji char="🫖" size={15} className="ml-0.5" />

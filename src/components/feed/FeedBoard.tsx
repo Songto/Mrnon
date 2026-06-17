@@ -393,15 +393,15 @@ export function FeedBoard() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {posts.map((p) => {
+            {posts.map((p, i) => {
               const t = timeLeft(p.expiresAt, now);
               const mine = identity?.userId === p.authorId;
               const iWaved = identity ? p.waves.includes(identity.userId) : false;
               return (
                 <article
                   key={p.id}
-                  className="cozy-card relative flex flex-col gap-3 p-4"
-                  style={{ borderColor: `${p.accent}66` }}
+                  className="rise cozy-card relative flex flex-col gap-3 p-4 transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-cozy-lg"
+                  style={{ borderColor: `${p.accent}66`, "--d": `${Math.min(i, 8) * 0.05}s` } as React.CSSProperties}
                 >
                   {/* time ribbon */}
                   <div className="flex items-center justify-between">

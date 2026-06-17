@@ -18,7 +18,8 @@ export function MemberMiniCard({ member }: { member: MemberCard }) {
   return (
     <Link
       href={`/members/${member.slug}`}
-      className="group block w-[200px] max-w-full overflow-hidden rounded-cozy border border-cocoa/10 bg-surface/80 text-center shadow-cozy transition hover:-translate-y-1 hover:shadow-cozy-lg"
+      style={{ borderColor: `${accent}55` }}
+      className="group block w-[200px] max-w-full overflow-hidden rounded-cozy border-2 bg-surface/80 text-center shadow-cozy transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:shadow-cozy-lg"
     >
       {/* banner */}
       <div
