@@ -5,22 +5,45 @@
 
 import { useEffect, useState } from "react";
 import { useIdentity } from "@/lib/identity";
-import { SEEDS, RARITY_META, type SeedDef, type SeedRarity } from "@/lib/seeds";
+import {
+  SEEDS,
+  RARITY_META,
+  MAX_STARS,
+  starsFromDups,
+  dupsToNextStar,
+  type SeedDef,
+  type SeedRarity
+} from "@/lib/seeds";
 import { SeedIcon } from "./SeedIcon";
 import { GachaMachine } from "./GachaMachine";
+import { CozyGlyph } from "../ui/CozyGlyph";
 import { clsx } from "@/lib/clsx";
 
 type RollResult = {
   seed: SeedDef;
   duplicate: boolean;
+  dupCount: number;
+  stars: number;
   complete: boolean;
 };
 
 const RARITY_ORDER: SeedRarity[] = ["regular", "rare", "legendary"];
 
+// A tiny ★ row: `n` filled stars out of MAX_STARS.
+function StarRow({ n, size = 11 }: { n: number; size?: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5" title={`${n}/${MAX_STARS} stars`}>
+      {Array.from({ length: MAX_STARS }).map((_, i) => (
+        <CozyGlyph key={i} name="star" size={size} className={i < n ? "" : "opacity-25 grayscale"} />
+      ))}
+    </span>
+  );
+}
+
 export function SeedGacha() {
   const { identity } = useIdentity();
   const [seeds, setSeeds] = useState<string[]>([]);
+  const [seedDups, setSeedDups] = useState<Record<string, number>>({});
   const [canRoll, setCanRoll] = useState(false);
   const [registered, setRegistered] = useState(true);
   const [rolling, setRolling] = useState(false);
@@ -33,6 +56,7 @@ export function SeedGacha() {
       .then((r) => r.json())
       .then((d) => {
         setSeeds(d.seeds ?? []);
+        setSeedDups(d.seedDups ?? {});
         setCanRoll(!!d.canRoll);
         setRegistered(!!d.registered);
       })
@@ -55,8 +79,15 @@ export function SeedGacha() {
       .catch(() => null);
     setRolling(false);
     if (res?.ok) {
-      setResult({ seed: res.seed, duplicate: res.duplicate, complete: res.complete });
+      setResult({
+        seed: res.seed,
+        duplicate: res.duplicate,
+        dupCount: res.dupCount ?? 0,
+        stars: res.stars ?? 0,
+        complete: res.complete
+      });
       setSeeds(res.seeds);
+      setSeedDups(res.seedDups ?? {});
       setCanRoll(false);
     } else {
       setError(res?.error || "The gacha jammed — try again!");
@@ -95,9 +126,19 @@ export function SeedGacha() {
               </p>
               <p className="flex items-center justify-center gap-1.5 font-display">
                 <SeedIcon id={result.seed.id} emoji={result.seed.emoji} size={20} /> {result.seed.name}
-                {result.duplicate && <span className="text-xs text-cocoa-soft"> (duplicate)</span>}
               </p>
-              <p className="text-[11px] text-cocoa-soft">{result.seed.blurb}</p>
+              {result.duplicate ? (
+                <div className="mt-0.5 flex flex-col items-center gap-0.5">
+                  <StarRow n={result.stars} />
+                  <span className="text-[11px] text-cocoa-soft">
+                    duplicate! {dupsToNextStar(result.dupCount) > 0
+                      ? `${dupsToNextStar(result.dupCount)} more for the next ⭐`
+                      : "max stars ✨"}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-[11px] text-cocoa-soft">{result.seed.blurb}</p>
+              )}
               {result.complete && (
                 <p className="mt-1 text-xs font-display text-sage-deep">
                   Collection complete — Gardener badge earned! 🌱
@@ -162,6 +203,9 @@ export function SeedGacha() {
                   <span className="mt-0.5 w-full truncate text-[9px] text-cocoa-soft">
                     {has ? s.name : "???"}
                   </span>
+                  {has && starsFromDups(seedDups[s.id]) > 0 && (
+                    <StarRow n={starsFromDups(seedDups[s.id])} size={8} />
+                  )}
                 </div>
               );
             })}

@@ -23,6 +23,7 @@ type GardenPlant = {
   emoji: string;
   progress: number;
   waterReceived: number;
+  wateredByViewer?: boolean;
 };
 
 type Online = { userId: string; name: string; avatar?: string };
@@ -128,20 +129,26 @@ export function PlantGarden() {
                 </div>
 
                 {identity && !mine && (
-                  <CozyButton
-                    variant="soft"
-                    className="mt-3 gap-1 px-4 py-1.5 text-xs"
-                    disabled={watering === p.id}
-                    onClick={() => water(p.id)}
-                  >
-                    {watering === p.id ? (
-                      "Watering…"
-                    ) : (
-                      <>
-                        Water <CozyGlyph name="droplet" size={13} />
-                      </>
-                    )}
-                  </CozyButton>
+                  p.wateredByViewer ? (
+                    <span className="mt-3 inline-flex items-center gap-1 rounded-full bg-sage/25 px-4 py-1.5 text-xs font-display text-sage-deep">
+                      <CozyGlyph name="droplet" size={13} /> Watered today ✓
+                    </span>
+                  ) : (
+                    <CozyButton
+                      variant="soft"
+                      className="mt-3 gap-1 px-4 py-1.5 text-xs"
+                      disabled={watering === p.id}
+                      onClick={() => water(p.id)}
+                    >
+                      {watering === p.id ? (
+                        "Watering…"
+                      ) : (
+                        <>
+                          Water <CozyGlyph name="droplet" size={13} />
+                        </>
+                      )}
+                    </CozyButton>
+                  )
                 )}
               </div>
             );

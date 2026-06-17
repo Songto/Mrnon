@@ -40,6 +40,20 @@ export function seedById(id: string): SeedDef | undefined {
   return SEEDS.find((s) => s.id === id);
 }
 
+// ---- Stars: duplicate seeds upgrade a plant. 5 duplicates = 1 star, max 5. ----
+export const DUPS_PER_STAR = 5;
+export const MAX_STARS = 5;
+
+export function starsFromDups(dups = 0): number {
+  return Math.min(MAX_STARS, Math.floor(dups / DUPS_PER_STAR));
+}
+
+// Duplicates still needed before the next star (0 when already maxed).
+export function dupsToNextStar(dups = 0): number {
+  if (starsFromDups(dups) >= MAX_STARS) return 0;
+  return DUPS_PER_STAR - (dups % DUPS_PER_STAR);
+}
+
 // Weighted roll: pick a tier by chance, then a seed uniformly within it.
 export function rollSeed(rand: () => number = Math.random): SeedDef {
   const r = rand();

@@ -17,10 +17,13 @@ import {
 import type { Showcase } from "@/lib/db";
 import { Avatar } from "@/components/ui/Avatar";
 import { CozyButton } from "@/components/ui/CozyButton";
-import { Emoji } from "@/components/ui/CozyGlyph";
+import { CozyGlyph, Emoji } from "@/components/ui/CozyGlyph";
 import { ImageUpload } from "./ImageUpload";
 import { FocalPicker } from "./FocalPicker";
 import { ShowcaseManager } from "./ShowcaseManager";
+import { SeedIcon } from "@/components/garden/SeedIcon";
+import { seedById, starsFromDups } from "@/lib/seeds";
+import { clsx } from "@/lib/clsx";
 
 type Form = {
   displayName: string;
@@ -52,6 +55,7 @@ type Form = {
   photos: string[];
   showcaseStyle: "grid" | "full";
   showcases: Showcase[];
+  displayedSeed: string;
 };
 
 const EMPTY: Form = {
@@ -83,7 +87,8 @@ const EMPTY: Form = {
   backgroundPos: "50% 50%",
   photos: [],
   showcaseStyle: "grid",
-  showcases: []
+  showcases: [],
+  displayedSeed: ""
 };
 
 // "Choose a fit" row, modelled on the Windows wallpaper settings.
@@ -142,6 +147,8 @@ function Field({
 export function ProfileEditor() {
   const { identity } = useIdentity();
   const [form, setForm] = useState<Form>(EMPTY);
+  const [ownedSeeds, setOwnedSeeds] = useState<string[]>([]);
+  const [seedDups, setSeedDups] = useState<Record<string, number>>({});
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -154,6 +161,8 @@ export function ProfileEditor() {
       .then((r) => r.json())
       .then((d) => {
         const p = d.profile || {};
+        setOwnedSeeds(Array.isArray(p.seeds) ? p.seeds : []);
+        setSeedDups(p.seedDups ?? {});
         // Migrate any legacy photos[] into a Screenshots showcase the first time.
         let showcases: Showcase[] = Array.isArray(p.showcases) ? p.showcases : [];
         if (showcases.length === 0 && Array.isArray(p.photos) && p.photos.length > 0) {
@@ -269,6 +278,61 @@ export function ProfileEditor() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Display plant — pick a seed you own to grow + show on your profile */}
+          <div>
+            <p className="mb-1 flex items-center gap-1.5 text-xs font-display text-cocoa-soft">
+              <CozyGlyph name="potted" size={14} /> Profile plant
+            </p>
+            <p className="mb-2 text-[11px] text-cocoa-soft">
+              Pick a seed you&apos;ve collected — it grows with your water and gets lusher with stars.
+            </p>
+            {ownedSeeds.length === 0 ? (
+              <p className="rounded-2xl bg-cocoa/[0.04] px-3 py-2 text-xs text-cocoa-soft">
+                Roll the seed gacha in the Garden to collect seeds first 🌱
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => set("displayedSeed", "")}
+                  className={clsx(
+                    "flex h-14 w-14 items-center justify-center rounded-2xl border-2 text-[11px] text-cocoa-soft transition",
+                    !form.displayedSeed ? "border-strawberry bg-strawberry/10" : "border-cocoa/10 hover:bg-cocoa/5"
+                  )}
+                >
+                  none
+                </button>
+                {ownedSeeds.map((id) => {
+                  const s = seedById(id);
+                  if (!s) return null;
+                  const stars = starsFromDups(seedDups[id]);
+                  const picked = form.displayedSeed === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      title={`${s.name}${stars ? ` · ${stars}★` : ""}`}
+                      onClick={() => set("displayedSeed", id)}
+                      className={clsx(
+                        "flex h-14 w-14 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 transition",
+                        picked ? "border-strawberry bg-strawberry/10" : "border-cocoa/10 hover:bg-cocoa/5"
+                      )}
+                    >
+                      <SeedIcon id={s.id} emoji={s.emoji} size={26} />
+                      {stars > 0 && (
+                        <span className="flex items-center text-honey">
+                          {Array.from({ length: stars }).map((_, i) => (
+                            <CozyGlyph key={i} name="star" size={7} />
+                          ))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Members card */}

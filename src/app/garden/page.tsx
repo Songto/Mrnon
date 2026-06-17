@@ -10,7 +10,7 @@ export default function GardenPage() {
       <SectionHeading
         icon="leaf"
         title="The Member Garden"
-        subtitle="Every cozy moment grows your plant. Water a friend's to help it bloom — and roll the daily seed gacha to complete your collection."
+        subtitle="Plants grow when friends water them — give a buddy's plant a daily drink, and roll the seed gacha to grow your own collection."
       />
       <SeedGacha />
       <PlantGarden />

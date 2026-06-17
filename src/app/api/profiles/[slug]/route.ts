@@ -5,9 +5,10 @@ import {
   addProfileComment,
   deleteProfileComment,
   reportProfile,
-  toggleProfileLike,
+  likeProfile,
   grantProfileBadge,
-  earnedAdvancedBadges
+  earnedAdvancedBadges,
+  displayedPlantFor
 } from "@/lib/db";
 import { getActor } from "@/lib/actor";
 import { isAdminUserId } from "@/lib/roles";
@@ -16,7 +17,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: { slug: string } }) {
   const profile = getProfile(params.slug);
-  return NextResponse.json({ profile, earnedBadges: earnedAdvancedBadges(params.slug) });
+  return NextResponse.json({
+    profile,
+    earnedBadges: earnedAdvancedBadges(params.slug),
+    displayedPlant: displayedPlantFor(params.slug)
+  });
 }
 
 // POST { action: "save" | "comment" | "report" | "delete-comment" | "like" | "grant-badge", ... }
@@ -62,7 +67,7 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
   }
 
   if (body.action === "like") {
-    const result = toggleProfileLike(slug, actor.userId);
+    const result = likeProfile(slug, actor.userId);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
     return NextResponse.json(result);
   }

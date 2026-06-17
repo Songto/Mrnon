@@ -41,7 +41,8 @@ export async function GET(req: Request) {
       }
     });
   }
-  return NextResponse.json({ garden: listGarden() });
+  const actor = await getActor();
+  return NextResponse.json({ garden: listGarden(actor?.userId) });
 }
 
 // POST { action: "water" | "roll", ... }
@@ -62,11 +63,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
   const result = waterPlant(String(body.targetId), actor.userId, actor.name);
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 404 });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   return NextResponse.json({
     ok: true,
     target: result.target,
     newBadges: result.newBadges,
-    garden: listGarden()
+    garden: listGarden(actor.userId)
   });
 }

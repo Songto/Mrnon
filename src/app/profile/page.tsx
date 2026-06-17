@@ -84,8 +84,8 @@ export default function ProfilePage() {
                 <CozyGlyph name={STAGE_GLYPH[plant?.stage ?? "seed"] ?? "acorn"} size={18} />
                 {plant?.stageLabel ?? "Seedling"}
               </p>
-              <p className="text-xs text-cocoa-soft">
-                Growth score: {plant?.score ?? 0}
+              <p className="inline-flex items-center gap-1 text-xs text-cocoa-soft">
+                <CozyGlyph name="droplet" size={12} /> {plant?.score ?? 0} water
                 {plant?.next && ` · next: ${plant.next.label} at ${plant.next.min}`}
               </p>
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface/70">
@@ -103,7 +103,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-cocoa-soft">
-            Chat in the tearoom, RSVP to events, and visit daily to help it bloom 🌸
+            Every 100 drops of water grows your plant a stage — make friends and water
+            each other daily to bloom 🌸
           </p>
         </div>
       </div>

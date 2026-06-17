@@ -13,7 +13,7 @@ import {
   questDone,
   type UserStats
 } from "./badges";
-import { SEEDS, rollSeed, seedById } from "./seeds";
+import { SEEDS, rollSeed, seedById, starsFromDups } from "./seeds";
 
 export type UserRecord = {
   id: string;
@@ -31,6 +31,7 @@ export type UserRecord = {
   gamesFinished?: number; // mini-games played to the end
   profileSaves?: number; // profile customizations saved
   growthBonus?: number; // admin garden-stage adjustment (can be negative)
+  wateredToday?: { day: string; targets: string[] }; // anti-spam: who they watered today
   createdAt: number;
   lastSeen: number;
 };
@@ -103,6 +104,8 @@ export type ProfileRecord = {
   likes?: string[]; // userIds who liked this profile (Famous badge)
   grantedBadges?: string[]; // admin-granted badges ("secret", "cutefactor")
   seeds?: string[]; // unique seed ids collected from the gacha
+  seedDups?: Record<string, number>; // duplicate rolls per seed → fuels stars
+  displayedSeed?: string; // seed chosen to grow + show on the profile
   lastRollDay?: string; // YYYY-MM-DD of the last gacha roll
   comments: ProfileComment[];
   updatedAt: number;
@@ -464,25 +467,23 @@ function statsOf(u: UserRecord): UserStats {
 }
 
 // ---- Garden growth model ----
+// A plant climbs one stage for every WATER_PER_STAGE drops of water it
+// receives, so the garden is driven by friends watering each other.
+export const WATER_PER_STAGE = 100;
+
 export const GROWTH_STAGES = [
   { key: "seed", label: "Seedling", emoji: "🌰", min: 0 },
-  { key: "sprout", label: "Sprout", emoji: "🌱", min: 5 },
-  { key: "leafy", label: "Leafy", emoji: "🌿", min: 20 },
-  { key: "budding", label: "Budding", emoji: "🪴", min: 50 },
-  { key: "bloom", label: "In Bloom", emoji: "🌸", min: 100 },
-  { key: "flourishing", label: "Flourishing", emoji: "🌺", min: 200 }
+  { key: "sprout", label: "Sprout", emoji: "🌱", min: WATER_PER_STAGE },
+  { key: "leafy", label: "Leafy", emoji: "🌿", min: WATER_PER_STAGE * 2 },
+  { key: "budding", label: "Budding", emoji: "🪴", min: WATER_PER_STAGE * 3 },
+  { key: "bloom", label: "In Bloom", emoji: "🌸", min: WATER_PER_STAGE * 4 },
+  { key: "flourishing", label: "Flourishing", emoji: "🌺", min: WATER_PER_STAGE * 5 }
 ] as const;
 
+// Growth is now water-based: every drop counts toward the next stage, plus any
+// admin stage adjustment (growthBonus, in water-equivalent points).
 export function growthScore(u: UserRecord): number {
-  return Math.max(
-    0,
-    u.messages +
-      u.eventsAttended * 5 +
-      u.eventsHosted * 8 +
-      u.visitDays.length * 3 +
-      u.waterReceived * 2 +
-      (u.growthBonus ?? 0)
-  );
+  return Math.max(0, u.waterReceived + (u.growthBonus ?? 0));
 }
 
 export function stageFor(score: number) {
@@ -575,7 +576,7 @@ export function getUser(userId: string): UserRecord | undefined {
   return read().users[userId];
 }
 
-export function listGarden() {
+export function listGarden(viewerId?: string) {
   const db = read();
   // Only show registered members (people with a claimed profile), so stray
   // one-off guests / private-room codes don't sprout plants in the garden.
@@ -584,6 +585,10 @@ export function listGarden() {
       .filter((p) => p.ownerId && !p.banned)
       .map((p) => [p.ownerId as string, p])
   );
+  // Which plants the viewer has already watered today (to disable the button).
+  const viewer = viewerId ? db.users[viewerId] : undefined;
+  const wateredToday =
+    viewer?.wateredToday?.day === todayISO() ? new Set(viewer.wateredToday.targets) : new Set<string>();
   return Object.values(db.users)
     .filter((u) => members.has(u.id))
     .map((u) => {
@@ -600,6 +605,7 @@ export function listGarden() {
         emoji: stage.emoji,
         progress,
         waterReceived: u.waterReceived,
+        wateredByViewer: wateredToday.has(u.id),
         badges: u.badges
       };
     })
@@ -607,12 +613,20 @@ export function listGarden() {
 }
 
 export function waterPlant(targetId: string, gardenerId: string, gardenerName: string) {
+  if (targetId === gardenerId) return { ok: false as const, error: "Water a friend's plant, not your own! 🌱" };
   const db = read();
   const target = db.users[targetId];
   if (!target) return { ok: false as const, error: "No such plant" };
+  // Anti-spam: each gardener may water a given plant only once per day.
+  const gardener = ensureUser(gardenerId, gardenerName);
+  const today = todayISO();
+  if (gardener.wateredToday?.day !== today) gardener.wateredToday = { day: today, targets: [] };
+  if (gardener.wateredToday.targets.includes(targetId)) {
+    return { ok: false as const, error: "You already watered this plant today — come back tomorrow 🌙" };
+  }
+  gardener.wateredToday.targets.push(targetId);
   target.waterReceived += 1;
   // The gardener gets credit too (for the Good Neighbor badge).
-  const gardener = ensureUser(gardenerId, gardenerName);
   gardener.wateredOthers += 1;
   const newBadges = awardNewBadges(gardener);
   cache = db;
@@ -882,6 +896,13 @@ export function saveProfile(
   }
   if (patch.showcaseStyle === "grid" || patch.showcaseStyle === "full") {
     base.showcaseStyle = patch.showcaseStyle;
+  }
+  // Displayed plant: only a seed the member actually owns (or "" to clear).
+  if (typeof patch.displayedSeed === "string") {
+    base.displayedSeed =
+      patch.displayedSeed && (base.seeds ?? []).includes(patch.displayedSeed)
+        ? patch.displayedSeed
+        : undefined;
   }
   if (
     patch.role === "admin" ||
@@ -1167,17 +1188,20 @@ export function clearPoke(pokeId: string, userId: string) {
 
 // ---- Profile likes (Famous badge) & admin-granted badges ----
 
-export function toggleProfileLike(slug: string, userId: string) {
+// One like per person, ever — liking is permanent (no un-like), so the count
+// can't be spammed up and down.
+export function likeProfile(slug: string, userId: string) {
   const db = read();
   const profile = db.profiles[slug];
   if (!profile) return { ok: false as const, error: "No profile" };
   if (profile.ownerId === userId) return { ok: false as const, error: "You can't like yourself!" };
   const likes = profile.likes ?? [];
-  const liked = likes.includes(userId);
-  profile.likes = liked ? likes.filter((id) => id !== userId) : [...likes, userId];
-  cache = db;
-  write();
-  return { ok: true as const, likes: profile.likes.length, liked: !liked };
+  if (!likes.includes(userId)) {
+    profile.likes = [...likes, userId];
+    cache = db;
+    write();
+  }
+  return { ok: true as const, likes: profile.likes!.length, liked: true };
 }
 
 // Is the given userId an admin? (Owns a profile whose slug resolves to admin.)
@@ -1198,9 +1222,23 @@ export function seedStateFor(userId: string) {
   const today = todayISO();
   return {
     seeds: profile?.seeds ?? [],
+    seedDups: profile?.seedDups ?? {},
+    displayedSeed: profile?.displayedSeed,
     canRoll: !!profile && profile.lastRollDay !== today,
     registered: !!profile
   };
+}
+
+// The plant a member chose to show on their profile: its species (seed),
+// growth stage (water-based, from the owner's record), and star level.
+export function displayedPlantFor(slug: string): { seedId: string; stageIndex: number; stars: number } | null {
+  const db = read();
+  const p = db.profiles[slug];
+  if (!p?.displayedSeed || !seedById(p.displayedSeed)) return null;
+  const u = p.ownerId ? db.users[p.ownerId] : undefined;
+  const stageIndex = u ? stageFor(growthScore(u)).index : 0;
+  const stars = starsFromDups(p.seedDups?.[p.displayedSeed]);
+  return { seedId: p.displayedSeed, stageIndex, stars };
 }
 
 export function rollDailySeed(userId: string) {
@@ -1216,14 +1254,22 @@ export function rollDailySeed(userId: string) {
   const seed = rollSeed();
   const had = (profile.seeds ?? []).includes(seed.id);
   if (!had) profile.seeds = [...(profile.seeds ?? []), seed.id];
+  // A duplicate feeds the seed's star meter instead of being wasted.
+  const dups = { ...(profile.seedDups ?? {}) };
+  if (had) dups[seed.id] = (dups[seed.id] ?? 0) + 1;
+  profile.seedDups = dups;
   profile.lastRollDay = today;
   cache = db;
   write();
+  const seedDupCount = dups[seed.id] ?? 0;
   return {
     ok: true as const,
     seed: { id: seed.id, name: seed.name, emoji: seed.emoji, rarity: seed.rarity, blurb: seed.blurb },
     duplicate: had,
+    dupCount: seedDupCount,
+    stars: starsFromDups(seedDupCount),
     seeds: profile.seeds ?? [],
+    seedDups: dups,
     complete: (profile.seeds ?? []).length >= SEEDS.length
   };
 }

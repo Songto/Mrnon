@@ -255,6 +255,36 @@
   .message-in { animation: none; }
 }
 
+/* ---- Species plant: gentle sway, twinkling sparkles, glow pulse (by stars) ---- */
+.sp-sway {
+  animation: sp-sway 4.5s ease-in-out infinite;
+}
+@keyframes sp-sway {
+  0%, 100% { transform: rotate(-1.5deg); }
+  50% { transform: rotate(1.5deg); }
+}
+.sp-twinkle {
+  animation: sp-twinkle 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sp-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.sp-pulse {
+  animation: sp-pulse 3s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sp-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-sway, .sp-twinkle, .sp-pulse { animation: none; }
+}
+
 /* Steam puffs that rise from teacups */
 .steam-puff {
   position: absolute;

@@ -16,6 +16,8 @@ import { ProfileMusic } from "./ProfileMusic";
 import { PhotoShowcase } from "./PhotoShowcase";
 import { ShowcaseList } from "./ShowcaseList";
 import { RewardsPanel } from "./RewardsPanel";
+import { SpeciesPlant } from "@/components/garden/SpeciesPlant";
+import { seedById } from "@/lib/seeds";
 import type { Showcase } from "@/lib/db";
 
 type Comment = {
@@ -97,6 +99,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
   const [profile, setProfile] = useState<Profile | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [earnedBadges, setEarnedBadges] = useState<EarnedBadge[]>([]);
+  const [displayedPlant, setDisplayedPlant] = useState<{ seedId: string; stageIndex: number; stars: number } | null>(null);
   const [draft, setDraft] = useState("");
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -112,6 +115,7 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
         setProfile(d.profile);
         setComments(d.profile?.comments ?? []);
         setEarnedBadges(d.earnedBadges ?? []);
+        setDisplayedPlant(d.displayedPlant ?? null);
       })
       .catch(() => {});
 
@@ -132,17 +136,10 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
       setShowLogin(true);
       return;
     }
-    if (isOwner) return;
-    // optimistic
+    if (isOwner || iLiked) return; // one like per person, permanent
+    // optimistic (add only)
     setProfile((p) =>
-      p
-        ? {
-            ...p,
-            likes: iLiked
-              ? (p.likes ?? []).filter((id) => id !== identity.userId)
-              : [...(p.likes ?? []), identity.userId]
-          }
-        : p
+      p ? { ...p, likes: [...(p.likes ?? []), identity.userId] } : p
     );
     await fetch(`/api/profiles/${slug}`, {
       method: "POST",
@@ -262,13 +259,13 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
                 {/* like ❤️ — feeds the Famous badge */}
                 <button
                   onClick={toggleLike}
-                  disabled={isOwner}
-                  title={isOwner ? "Your own profile" : iLiked ? "Unlike" : "Like this profile"}
+                  disabled={isOwner || iLiked}
+                  title={isOwner ? "Your own profile" : iLiked ? "You liked this" : "Like this profile (once!)"}
                   className={clsx(
-                    "flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-display transition active:scale-95 disabled:opacity-60",
+                    "flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-display transition active:scale-95 disabled:cursor-default",
                     iLiked
-                      ? "bg-strawberry text-night shadow-cozy"
-                      : "border border-cocoa/10 text-cocoa-soft hover:bg-surface"
+                      ? "bg-strawberry text-night shadow-cozy disabled:opacity-100"
+                      : "border border-cocoa/10 text-cocoa-soft hover:bg-surface disabled:opacity-60"
                   )}
                 >
                   <span className={iLiked ? "animate-pop" : ""}>{iLiked ? "❤️" : "🤍"}</span>
@@ -374,6 +371,29 @@ export function ProfileView({ slug, fallback }: { slug: string; fallback: Profil
               const showAbout = items.length > 0 || !!profile?.motto || isOwner;
               return (
                 <div className="cozy-card space-y-4 p-5" style={{ borderColor: `${accent}55` }}>
+                  {displayedPlant && (
+                    <>
+                      <div className="flex flex-col items-center pb-1 text-center">
+                        <SpeciesPlant
+                          seedId={displayedPlant.seedId}
+                          stage={displayedPlant.stageIndex}
+                          stars={displayedPlant.stars}
+                          size={150}
+                        />
+                        <p className="-mt-2 flex items-center gap-1.5 font-display text-sm">
+                          {seedById(displayedPlant.seedId)?.name}
+                          {displayedPlant.stars > 0 && (
+                            <span className="inline-flex items-center text-honey">
+                              {Array.from({ length: displayedPlant.stars }).map((_, i) => (
+                                <CozyGlyph key={i} name="star" size={12} />
+                              ))}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="h-px bg-cocoa/10" />
+                    </>
+                  )}
                   {showAbout && (
                     <div>
                       <h2 className="flex items-center gap-1.5 font-display text-base">
